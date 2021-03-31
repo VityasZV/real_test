@@ -55,8 +55,8 @@ static int hystart_detect __read_mostly = HYSTART_ACK_TRAIN | HYSTART_DELAY;
 static int hystart_low_window __read_mostly = 16;
 static int hystart_ack_delta_us __read_mostly = 2000;
 
-static double buffer_speed[] = [-1, -1, -1];
-static int buf_pointer = 0; 
+static double buffer_speed[] = [0, 0, 0];
+static int buf_pointer = 0;
 static u32 cube_rtt_scale __read_mostly;
 static u32 beta_scale __read_mostly;
 static u64 cube_factor __read_mostly;
@@ -128,7 +128,7 @@ static inline void bictcp_hystart_reset(struct sock *sk)
 
 static void bictcp_init(struct sock *sk)
 {
-	printk(KERN_INFO "Cubic test BIT_TCP_INIT");
+	printk(KERN_INFO "Vityas test BIT_TCP_INIT");
 	struct bictcp *ca = inet_csk_ca(sk);
 
 	bictcp_reset(ca);
@@ -218,6 +218,10 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 	u64 offs, t;
 
 	ca->ack_cnt += acked;	/* count the number of ACKed packets */
+	buffer_speed[0] = buffer_speed[1];
+	buffer_speed[1] = buffer_speed[2];
+	buffer_speed[2] = cwnd;
+	double estimated_speed = (buffer_speed[0] + buffer_speed[1] + buffer_speed[2])/3;
 
 	if (ca->last_cwnd == cwnd &&
 	    (s32)(tcp_jiffies32 - ca->last_time) <= HZ / 32)
@@ -315,7 +319,6 @@ tcp_friendliness:
 				ca->cnt = max_cnt;
 		}
 	}
-
 	/* The maximum rate of cwnd increase CUBIC allows is 1 packet per
 	 * 2 packets ACKed, meaning cwnd grows at 1.5x per RTT.
 	 */
@@ -480,15 +483,15 @@ static struct tcp_congestion_ops cubictcp __read_mostly = {
 	.set_state	= bictcp_state,
 	.undo_cwnd	= tcp_reno_undo_cwnd,
 	.cwnd_event	= bictcp_cwnd_event,
-	.pkts_acked     = bictcp_acked,
+	.pkts_acked = bictcp_acked,
 	.owner		= THIS_MODULE,
 	.name		= "cubic_t",
 };
 
-static int __init cubictcp_register(void)
+static int __init vityastcp_register(void)
 {
 	BUILD_BUG_ON(sizeof(struct bictcp) > ICSK_CA_PRIV_SIZE);
-	printk(KERN_INFO "Cubic test loaded");
+	printk(KERN_INFO "Vityas test loaded");
 
 	/* Precompute a bunch of the scaling factors that are used per-packet
 	 * based on SRTT of 100ms
@@ -521,14 +524,14 @@ static int __init cubictcp_register(void)
 	return tcp_register_congestion_control(&cubictcp);
 }
 
-static void __exit cubictcp_unregister(void)
+static void __exit vityastcp_unregister(void)
 {
-	printk(KERN_INFO "Cubic test exit");
+	printk(KERN_INFO "Vityas test exit");
 	tcp_unregister_congestion_control(&cubictcp);
 }
 
-module_init(cubictcp_register);
-module_exit(cubictcp_unregister);
+module_init(vityastcp_register);
+module_exit(vityastcp_unregister);
 
 MODULE_AUTHOR("Vityas");
 MODULE_LICENSE("GPL");
