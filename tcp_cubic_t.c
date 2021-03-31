@@ -521,6 +521,7 @@ static int __init cubictcp_register(void)
 
 static void __exit cubictcp_unregister(void)
 {
+	printk(KERN_INFO "Cubic test exit");
 	tcp_unregister_congestion_control(&cubictcp);
 }
 
