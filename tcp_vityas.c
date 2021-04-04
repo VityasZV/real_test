@@ -55,7 +55,9 @@ static int hystart_detect __read_mostly = HYSTART_ACK_TRAIN | HYSTART_DELAY;
 static int hystart_low_window __read_mostly = 16;
 static int hystart_ack_delta_us __read_mostly = 2000;
 
-static double buffer_speed[] = [0, 0, 0];
+static u32 buffer_speed[3]; //saving last 3 speeds
+static u32 buffer_estimated_speed[3];
+static s64 last_mistakes[3];
 static int buf_pointer = 0;
 static u32 cube_rtt_scale __read_mostly;
 static u32 beta_scale __read_mostly;
@@ -143,6 +145,7 @@ static void bictcp_init(struct sock *sk)
 static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 {
 	if (event == CA_EVENT_TX_START) {
+		printk(KERN_INFO "CA_EVENT_TX_START");
 		struct bictcp *ca = inet_csk_ca(sk);
 		u32 now = tcp_jiffies32;
 		s32 delta;
@@ -158,6 +161,28 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 				ca->epoch_start = now;
 		}
 		return;
+	}
+	else if (event == CA_EVENT_CWND_RESTART) {
+		printk(KERN_INFO "CA_EVENT_CWND_RESTART");
+		struct tcp_sock *tp = tcp_sk(sk);
+		struct bictcp *ca = inet_csk_ca(sk);
+		u32 estimated_speed = (buffer_speed[0] + buffer_speed[1] + buffer_speed[2])/3;
+		s64 error = (last_mistakes[0] + last_mistakes[1] + last_mistakes[2])/3;
+		s64 begin_interval = estimated_speed-error;
+		s64 end_interval = estimated_speed+error;
+			buffer_speed[0] = 0;
+			buffer_speed[0] = 0;
+			buffer_speed[0] = 0;
+
+			buffer_estimated_speed[0] = 0;
+			buffer_estimated_speed[1] = 0;
+			buffer_estimated_speed[2] = 0;
+
+			last_mistakes[0] = 0;
+			last_mistakes[1] = 0;
+			last_mistakes[2] = 0;
+		printk(KERN_INFO "RESTART estimated speed = %u; step = %lld", estimated_speed, error);
+		tp->prior_cwnd = estimated_speed - (u32)(error);
 	}
 }
 
@@ -221,8 +246,17 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 	buffer_speed[0] = buffer_speed[1];
 	buffer_speed[1] = buffer_speed[2];
 	buffer_speed[2] = cwnd;
-	double estimated_speed = (buffer_speed[0] + buffer_speed[1] + buffer_speed[2])/3;
-
+	buffer_estimated_speed[0] = buffer_estimated_speed[1];
+	buffer_estimated_speed[1] = buffer_estimated_speed[2];
+	u32 estimated_speed = (buffer_speed[0] + buffer_speed[1] + buffer_speed[2])/3;
+	buffer_estimated_speed[2] = estimated_speed;
+	last_mistakes[0] = last_mistakes[1];
+	last_mistakes[1] = last_mistakes[2];
+	last_mistakes[2] = cwnd - buffer_estimated_speed[1];
+	s64 error = (last_mistakes[0] + last_mistakes[1] + last_mistakes[2])/3;
+	s64 begin_interval = estimated_speed-error;
+	s64 end_interval = estimated_speed+error;
+	printk(KERN_INFO "F estimated speed = %u; step = %lld", estimated_speed, error);
 	if (ca->last_cwnd == cwnd &&
 	    (s32)(tcp_jiffies32 - ca->last_time) <= HZ / 32)
 		return;
@@ -485,7 +519,7 @@ static struct tcp_congestion_ops cubictcp __read_mostly = {
 	.cwnd_event	= bictcp_cwnd_event,
 	.pkts_acked = bictcp_acked,
 	.owner		= THIS_MODULE,
-	.name		= "cubic_t",
+	.name		= "vityas",
 };
 
 static int __init vityastcp_register(void)
@@ -535,5 +569,5 @@ module_exit(vityastcp_unregister);
 
 MODULE_AUTHOR("Vityas");
 MODULE_LICENSE("GPL");
-MODULE_DESCRIPTION("CUBIC TCP TEST");
+MODULE_DESCRIPTION("Vityas TCP TEST");
 MODULE_VERSION("1.0");
