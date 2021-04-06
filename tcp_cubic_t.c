@@ -157,6 +157,12 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 		}
 		return;
 	}
+	else if (event == CA_EVENT_CWND_RESTART) {
+		printk(KERN_INFO "CA_EVENT_CWND_RESTART");
+		struct tcp_sock *tp = tcp_sk(sk);
+		struct bictcp *ca = inet_csk_ca(sk);
+		printk(KERN_INFO "RESTART prior cwnd = %u", tp->prior_cwnd);
+	}
 }
 
 /* calculate the cubic root of x using a table lookup followed by one
