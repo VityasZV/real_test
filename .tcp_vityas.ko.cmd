@@ -1,1 +1,0 @@
-cmd_/home/parallels/Documents/real_test/tcp_vityas.ko := ld -r -m elf_x86_64  -z max-page-size=0x200000  --build-id=sha1  -T ./scripts/module-common.lds -o /home/parallels/Documents/real_test/tcp_vityas.ko /home/parallels/Documents/real_test/tcp_vityas.o /home/parallels/Documents/real_test/tcp_vityas.mod.o;  true

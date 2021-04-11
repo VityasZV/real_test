@@ -1,0 +1,1 @@
+cmd_/home/parallels/Documents/real_test/vityas/modules.order := {   echo /home/parallels/Documents/real_test/vityas/tcp_vityas.ko; :; } | awk '!x[$$0]++' - > /home/parallels/Documents/real_test/vityas/modules.order

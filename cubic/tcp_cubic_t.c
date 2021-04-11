@@ -126,7 +126,7 @@ static inline void bictcp_hystart_reset(struct sock *sk)
 
 static void bictcp_init(struct sock *sk)
 {
-	printk(KERN_INFO "Cubic test BIT_TCP_INIT");
+	// printk(KERN_INFO "Cubic test BIT_TCP_INIT");
 	struct bictcp *ca = inet_csk_ca(sk);
 
 	bictcp_reset(ca);
@@ -156,6 +156,9 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 				ca->epoch_start = now;
 		}
 		return;
+	}
+	else if (event == CA_EVENT_CWND_RESTART) {
+        printk(KERN_INFO "CA_EVENT_CWND_RESTART");
 	}
 }
 
@@ -216,6 +219,8 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 	u64 offs, t;
 
 	ca->ack_cnt += acked;	/* count the number of ACKed packets */
+	printk(KERN_INFO "UPDATE cwnd = %u", cwnd);
+
 
 	if (ca->last_cwnd == cwnd &&
 	    (s32)(tcp_jiffies32 - ca->last_time) <= HZ / 32)
@@ -343,6 +348,7 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 {
 	const struct tcp_sock *tp = tcp_sk(sk);
 	struct bictcp *ca = inet_csk_ca(sk);
+    printk(KERN_INFO "RECALC SSTHRESH");
 
 	ca->epoch_start = 0;	/* end of epoch */
 
@@ -352,10 +358,8 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 			/ (2 * BICTCP_BETA_SCALE);
 	else
 		ca->last_max_cwnd = tp->snd_cwnd;
-	printk(KERN_INFO "CA_EVENT_CWND_RESTART");
-	struct tcp_sock *tp = tcp_sk(sk);
-	struct bictcp *ca = inet_csk_ca(sk);
 	printk(KERN_INFO "RESTART prior cwnd = %u", tp->prior_cwnd);
+	printk(KERN_INFO "Returning max of (cubic=%u, 2)", (tp->snd_cwnd * beta) / BICTCP_BETA_SCALE);
 	return max((tp->snd_cwnd * beta) / BICTCP_BETA_SCALE, 2U);
 }
 

@@ -1,46 +1,61 @@
-[24037.336146] Vityas test loaded
-[24046.778557] Vityas test BIT_TCP_INIT
-[24061.190043] Vityas test BIT_TCP_INIT
-[24061.190054] Vityas test BIT_TCP_INIT
-[24061.190670] Vityas test BIT_TCP_INIT
-[24061.190678] Vityas test BIT_TCP_INIT
-[24061.202352] F estimated speed = 7; step = 7
-[24061.202365] F estimated speed = 14; step = 12
-[24061.202409] F estimated speed = 22; step = 15
-[24061.204542] F estimated speed = 23; step = 8
-[24061.214983] F estimated speed = 24; step = 4
-[24061.215284] F estimated speed = 25; step = 2
-[24061.221563] F estimated speed = 26; step = 2
-[24061.238038] F estimated speed = 27; step = 2
-[24061.252405] F estimated speed = 28; step = 2
-[24061.338200] F estimated speed = 30; step = 3
-[24061.340448] F estimated speed = 31; step = 3
-[24061.406705] F estimated speed = 33; step = 3
-[24061.586774] F estimated speed = 35; step = 3
-[24061.586795] F estimated speed = 36; step = 3
-[24061.662708] F estimated speed = 38; step = 3
-[24061.788936] F estimated speed = 39; step = 3
-[24061.804245] F estimated speed = 41; step = 3
-[24061.876360] F estimated speed = 43; step = 3
-[24061.879609] F estimated speed = 44; step = 3
-[24062.389971] F estimated speed = 45; step = 3
-[24065.968034] Vityas test BIT_TCP_INIT
-[24067.063006] RECALC SSTHRESH
-[24067.063008] BUFFER SPEED: 45 45 47
-[24067.063009] BUFFERERRORS: 4 2 3
-[24067.063009] RESTART estimated speed = 45; step = 3
-[24067.063009] Returning max of (cubic=35, 2, vityas=42)
-[24067.063015] F estimated speed = 47; step = 16
-[24067.063018] F estimated speed = 49; step = 17
-[24067.063019] F estimated speed = 50; step = 18
-[24067.063020] F estimated speed = 50; step = 1
-[24085.613470] RECALC SSTHRESH
-[24085.613471] BUFFER SPEED: 50 50 50
-[24085.613472] BUFFERERRORS: 3 1 0
-[24085.613472] RESTART estimated speed = 50; step = 1
-[24085.613473] Returning max of (cubic=35, 2, vityas=49)
-[24085.613485] F estimated speed = 49; step = 16
-[24091.203446] CA_EVENT_CWND_RESTART
-[24091.203447] RESTART estimated speed = 49; step = 16
-[24091.203937] CA_EVENT_CWND_RESTART
-[24091.203938] RESTART estimated speed = 33; step = 0
+[  118.165129] Vityas test loaded
+[  155.774221] Vityas test BIT_TCP_INIT
+[  155.774231] Vityas test BIT_TCP_INIT
+[  155.774486] Vityas test BIT_TCP_INIT
+[  155.774492] Vityas test BIT_TCP_INIT
+[  155.786598] F estimated speed = 5; step = 5
+[  155.786603] F estimated speed = 10; step = 9
+[  155.786606] F estimated speed = 16; step = 11
+[  155.786608] F estimated speed = 16; step = 5
+[  155.786611] F estimated speed = 16; step = 2
+[  155.786614] F estimated speed = 16; step = 0
+[  155.786617] F estimated speed = 16; step = 0
+[  155.786619] F estimated speed = 16; step = 0
+[  155.786622] F estimated speed = 16; step = 0
+[  155.786637] F estimated speed = 16; step = 0
+[  155.786695] F estimated speed = 16; step = 0
+[  155.786740] F estimated speed = 17; step = 1
+[  155.787804] F estimated speed = 18; step = 1
+[  155.788733] F estimated speed = 18; step = 1
+[  155.788779] F estimated speed = 19; step = 1
+[  155.791243] F estimated speed = 20; step = 1
+[  155.791268] F estimated speed = 20; step = 1
+[  155.796516] F estimated speed = 21; step = 2
+[  155.798746] F estimated speed = 22; step = 2
+[  155.798775] F estimated speed = 24; step = 3
+[  155.798779] F estimated speed = 24; step = 2
+[  155.798808] F estimated speed = 25; step = 1
+[  155.800020] F estimated speed = 25; step = 1
+[  155.814495] F estimated speed = 26; step = 1
+[  155.818673] F estimated speed = 27; step = 2
+[  155.818745] F estimated speed = 29; step = 3
+[  155.820972] F estimated speed = 30; step = 3
+[  155.833975] F estimated speed = 32; step = 3
+[  155.855945] F estimated speed = 33; step = 3
+[  155.889257] F estimated speed = 35; step = 3
+[  155.917112] F estimated speed = 37; step = 3
+[  155.919974] F estimated speed = 39; step = 4
+[  155.931196] F estimated speed = 41; step = 4
+[  155.932216] F estimated speed = 43; step = 4
+[  155.955311] F estimated speed = 45; step = 4
+[  161.271966] RECALC SSTHRESH
+[  161.271968] BUFFER SPEED: 43 45 47
+[  161.271969] BUFFERERRORS: 4 4 4
+[  161.271969] RESTART estimated speed = 45; step = 4
+[  161.271970] Returning max of (cubic=35, 2, vityas=41)
+[  161.272160] F estimated speed = 47; step = 16
+[  182.332395] Vityas test BIT_TCP_INIT
+[  182.601536] Vityas test BIT_TCP_INIT
+[  182.718148] Vityas test BIT_TCP_INIT
+[  182.960799] Vityas test BIT_TCP_INIT
+[  183.044748] Vityas test BIT_TCP_INIT
+[  183.488942] CA_EVENT_CWND_RESTART
+[  183.488943] RESTART estimated speed = 47; step = 16
+[  185.782187] CA_EVENT_CWND_RESTART
+[  185.782190] RESTART estimated speed = 32; step = 0
+[  185.782321] CA_EVENT_CWND_RESTART
+[  185.782321] RESTART estimated speed = 32; step = 0
+[  196.577118] Vityas test BIT_TCP_INIT
+[  197.489754] Vityas test BIT_TCP_INIT
+[  221.138186] Vityas test BIT_TCP_INIT
+[  221.316416] Vityas test BIT_TCP_INIT

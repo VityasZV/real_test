@@ -1,4 +1,5 @@
 obj-m += tcp_vityas.o
+$(info VITYAS_MAKE RUNS)
 all:
 		make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
 clean:
