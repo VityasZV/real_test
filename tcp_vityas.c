@@ -145,7 +145,7 @@ static void bictcp_init(struct sock *sk)
 static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 {
 	if (event == CA_EVENT_TX_START) {
-		printk(KERN_INFO "CA_EVENT_TX_START");
+		// printk(KERN_INFO "CA_EVENT_TX_START");
 		struct bictcp *ca = inet_csk_ca(sk);
 		u32 now = tcp_jiffies32;
 		s32 delta;
@@ -382,17 +382,38 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 {
 	const struct tcp_sock *tp = tcp_sk(sk);
 	struct bictcp *ca = inet_csk_ca(sk);
+	printk(KERN_INFO "RECALC SSTHRESH");
 
 	ca->epoch_start = 0;	/* end of epoch */
+	u32 result = 0;
+	u32 estimated_speed = (buffer_speed[0] + buffer_speed[1] + buffer_speed[2])/3;
+		s64 error = (last_mistakes[0] + last_mistakes[1] + last_mistakes[2])/3;
+		s64 begin_interval = estimated_speed-error;
+		s64 end_interval = estimated_speed+error;
+		printk(KERN_INFO "BUFFER SPEED: %u %u %u", buffer_speed[0], buffer_speed[1], buffer_speed[2]);
+		printk(KERN_INFO "BUFFERERRORS: %lld %lld %lld", last_mistakes[0], last_mistakes[1], last_mistakes[2]);
+			buffer_speed[0] = 0;
+			buffer_speed[0] = 0;
+			buffer_speed[0] = 0;
 
+			buffer_estimated_speed[0] = 0;
+			buffer_estimated_speed[1] = 0;
+			buffer_estimated_speed[2] = 0;
+
+			last_mistakes[0] = 0;
+			last_mistakes[1] = 0;
+			last_mistakes[2] = 0;
+		printk(KERN_INFO "RESTART estimated speed = %u; step = %lld", estimated_speed, error);
+		// tp->prior_cwnd = estimated_speed - (u32)(error);
 	/* Wmax and fast convergence */
 	if (tp->snd_cwnd < ca->last_max_cwnd && fast_convergence)
 		ca->last_max_cwnd = (tp->snd_cwnd * (BICTCP_BETA_SCALE + beta))
 			/ (2 * BICTCP_BETA_SCALE);
 	else
 		ca->last_max_cwnd = tp->snd_cwnd;
-
-	return max((tp->snd_cwnd * beta) / BICTCP_BETA_SCALE, 2U);
+	printk(KERN_INFO "Returning max of (cubic=%u, 2, vityas=%u)", (tp->snd_cwnd * beta) / BICTCP_BETA_SCALE, estimated_speed - (u32)(error));
+	result = max(max((tp->snd_cwnd * beta) / BICTCP_BETA_SCALE, 2U), estimated_speed - (u32)(error));
+	return result;
 }
 
 static void bictcp_state(struct sock *sk, u8 new_state)
@@ -526,6 +547,15 @@ static int __init vityastcp_register(void)
 {
 	BUILD_BUG_ON(sizeof(struct bictcp) > ICSK_CA_PRIV_SIZE);
 	printk(KERN_INFO "Vityas test loaded");
+	buffer_speed[0] = 0;
+	buffer_speed[1] = 0;
+	buffer_speed[2] = 0;
+	buffer_estimated_speed[0] = 0;
+	buffer_estimated_speed[1] = 0;
+	buffer_estimated_speed[2] = 0;
+	last_mistakes[0] = 0;
+	last_mistakes[1] = 0;
+	last_mistakes[2] = 0;
 
 	/* Precompute a bunch of the scaling factors that are used per-packet
 	 * based on SRTT of 100ms
