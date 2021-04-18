@@ -44,6 +44,8 @@
 #define HYSTART_DELAY_MAX	(16000U)	/* 16 ms */
 #define HYSTART_DELAY_THRESH(x)	clamp(x, HYSTART_DELAY_MIN, HYSTART_DELAY_MAX)
 
+#define buffs_size 3
+
 static int fast_convergence __read_mostly = 1;
 static int beta __read_mostly = 717;	/* = 717/1024 (BICTCP_BETA_SCALE) */
 static int initial_ssthresh __read_mostly;
@@ -55,10 +57,14 @@ static int hystart_detect __read_mostly = HYSTART_ACK_TRAIN | HYSTART_DELAY;
 static int hystart_low_window __read_mostly = 16;
 static int hystart_ack_delta_us __read_mostly = 2000;
 
-static u32 buffer_speed[3]; //saving last 3 speeds
-static u32 buffer_estimated_speed[3];
-static s64 last_mistakes[3];
+static u32 buffer_speed[buffs_size]; //saving last 3 speeds
+static u32 buffer_estimated_speed[buffs_size];
+static s64 last_mistakes[buffs_size];
+static u32 new_acked = 0;
+static u32 acked_buffer[buffs_size];
+static u32 acked_time[buffs_size];
 static int buf_pointer = 0;
+
 static u32 cube_rtt_scale __read_mostly;
 static u32 beta_scale __read_mostly;
 static u64 cube_factor __read_mostly;
@@ -166,21 +172,23 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 		printk(KERN_INFO "CA_EVENT_CWND_RESTART");
 		struct tcp_sock *tp = tcp_sk(sk);
 		struct bictcp *ca = inet_csk_ca(sk);
-		u32 estimated_speed = (buffer_speed[0] + buffer_speed[1] + buffer_speed[2])/3;
-		s64 error = (last_mistakes[0] + last_mistakes[1] + last_mistakes[2])/3;
-		s64 begin_interval = estimated_speed-error;
-		s64 end_interval = estimated_speed+error;
-			buffer_speed[0] = 0;
-			buffer_speed[0] = 0;
-			buffer_speed[0] = 0;
-
-			buffer_estimated_speed[0] = 0;
-			buffer_estimated_speed[1] = 0;
-			buffer_estimated_speed[2] = 0;
-
-			last_mistakes[0] = 0;
-			last_mistakes[1] = 0;
-			last_mistakes[2] = 0;
+		int i = 0;
+		u32 estimated_speed = 0;
+		s64 error = 0;
+		while (i < buffs_size) {
+			estimated_speed += buffer_speed[i];
+			error+=last_mistakes[i];
+			++i;
+		}
+		estimated_speed = estimated_speed / 3;
+		error = error / 3;
+		i = 0;
+		while (i < buffs_size) {
+			buffer_speed[i] = 0;
+			buffer_estimated_speed[i] = 0;
+			last_mistakes[i] = 0;
+			++i;
+		}
 		printk(KERN_INFO "RESTART estimated speed = %u; step = %lld", estimated_speed, error);
 		tp->prior_cwnd = estimated_speed - (u32)(error);
 	}
@@ -241,22 +249,44 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 {
 	u32 delta, bic_target, max_cnt;
 	u64 offs, t;
-
+	printk(KERN_INFO "CWND UPDATE");
 	ca->ack_cnt += acked;	/* count the number of ACKed packets */
-	buffer_speed[0] = buffer_speed[1];
-	buffer_speed[1] = buffer_speed[2];
-	buffer_speed[2] = cwnd;
-	buffer_estimated_speed[0] = buffer_estimated_speed[1];
-	buffer_estimated_speed[1] = buffer_estimated_speed[2];
-	u32 estimated_speed = (buffer_speed[0] + buffer_speed[1] + buffer_speed[2])/3;
-	buffer_estimated_speed[2] = estimated_speed;
-	last_mistakes[0] = last_mistakes[1];
-	last_mistakes[1] = last_mistakes[2];
-	last_mistakes[2] = cwnd - buffer_estimated_speed[1];
-	s64 error = (last_mistakes[0] + last_mistakes[1] + last_mistakes[2])/3;
-	s64 begin_interval = estimated_speed-error;
-	s64 end_interval = estimated_speed+error;
-	printk(KERN_INFO "F estimated speed = %u; step = %lld", estimated_speed, error);
+	new_acked += acked;
+	if (new_acked >= 50) {
+		acked_buffer[buf_pointer] = new_acked;
+		acked_time[buf_pointer] = jiffies / HZ;
+		printk(KERN_INFO "acked packets %u at time %u", new_acked, jiffies / HZ);
+		buf_pointer+=1;
+		new_acked = 0;
+	}
+	if (buf_pointer > buffs_size) {
+		buf_pointer = 0;
+		
+		u32 new_speed = acked_buffer[buffs_size-1] - acked_buffer[0];
+		u32 all_time = acked_time[buffs_size-1] - acked_time[0];
+		
+		new_speed = new_speed / all_time;
+		printk(KERN_INFO "new speed = %u", new_speed);
+		int i = 0;
+		while (i < buffs_size-1) {
+			buffer_estimated_speed[i] = buffer_estimated_speed[i+1];
+			buffer_speed[i] = buffer_speed[i+1];
+			last_mistakes[i] = last_mistakes[i+1];
+			++i;
+		}
+		i = 0;
+		buffer_speed[buffs_size-1] = new_speed;
+		last_mistakes[buffs_size-1] = new_speed - buffer_estimated_speed[buffs_size-2];
+		u32 estimated_speed = 0;		
+		while (i < buffs_size) {
+			estimated_speed += buffer_speed[i];
+			++i;
+		}
+		estimated_speed = estimated_speed / buffs_size;
+		buffer_estimated_speed[buffs_size-1] = estimated_speed;
+		printk(KERN_INFO "F estimated speed = %u", estimated_speed);
+	}
+	
 	if (ca->last_cwnd == cwnd &&
 	    (s32)(tcp_jiffies32 - ca->last_time) <= HZ / 32)
 		return;
@@ -385,25 +415,33 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 	printk(KERN_INFO "RECALC SSTHRESH");
 
 	ca->epoch_start = 0;	/* end of epoch */
+	int i = 0;
+
 	u32 result = 0;
-	u32 estimated_speed = (buffer_speed[0] + buffer_speed[1] + buffer_speed[2])/3;
-		s64 error = (last_mistakes[0] + last_mistakes[1] + last_mistakes[2])/3;
-		s64 begin_interval = estimated_speed-error;
-		s64 end_interval = estimated_speed+error;
-		printk(KERN_INFO "BUFFER SPEED: %u %u %u", buffer_speed[0], buffer_speed[1], buffer_speed[2]);
-		printk(KERN_INFO "BUFFERERRORS: %lld %lld %lld", last_mistakes[0], last_mistakes[1], last_mistakes[2]);
-			buffer_speed[0] = 0;
-			buffer_speed[0] = 0;
-			buffer_speed[0] = 0;
+	u32 estimated_speed = 0;
+	s64 error = 0;
+	while (i < buffs_size) {
+		estimated_speed+=buffer_speed[i];
+		error+=last_mistakes[i];
+		++i;
+	}
+	estimated_speed = estimated_speed / buffs_size;
+	error = error / buffs_size;
 
-			buffer_estimated_speed[0] = 0;
-			buffer_estimated_speed[1] = 0;
-			buffer_estimated_speed[2] = 0;
+	printk(KERN_INFO "BUFFER SPEED: %u %u %u", buffer_speed[0], buffer_speed[1], buffer_speed[2]);
+	printk(KERN_INFO "BUFFER ESTIMATED_SPEED: %u %u %u", buffer_estimated_speed[0], buffer_estimated_speed[1], buffer_estimated_speed[2]);
 
-			last_mistakes[0] = 0;
-			last_mistakes[1] = 0;
-			last_mistakes[2] = 0;
-		printk(KERN_INFO "RESTART estimated speed = %u; step = %lld", estimated_speed, error);
+	printk(KERN_INFO "BUFFER ERRORS: %lld %lld %lld", last_mistakes[0], last_mistakes[1], last_mistakes[2]);
+	new_acked = 0;
+	while (i < buffs_size) {
+		buffer_speed[i] = 0;
+		buffer_estimated_speed[i] = 0;
+		last_mistakes[i] = 0;
+		acked_buffer[i] = 0;
+		acked_time[i] = 0;
+		++i;	
+	}
+	printk(KERN_INFO "RESTART estimated speed = %u; step = %lld", estimated_speed, error);
 		// tp->prior_cwnd = estimated_speed - (u32)(error);
 	/* Wmax and fast convergence */
 	if (tp->snd_cwnd < ca->last_max_cwnd && fast_convergence)
@@ -547,15 +585,16 @@ static int __init vityastcp_register(void)
 {
 	BUILD_BUG_ON(sizeof(struct bictcp) > ICSK_CA_PRIV_SIZE);
 	printk(KERN_INFO "Vityas test loaded");
-	buffer_speed[0] = 0;
-	buffer_speed[1] = 0;
-	buffer_speed[2] = 0;
-	buffer_estimated_speed[0] = 0;
-	buffer_estimated_speed[1] = 0;
-	buffer_estimated_speed[2] = 0;
-	last_mistakes[0] = 0;
-	last_mistakes[1] = 0;
-	last_mistakes[2] = 0;
+	int i = 0;
+	new_acked = 0;
+	while (i < buffs_size) {
+		buffer_speed[i] = 0;
+		buffer_estimated_speed[i] = 0;
+		last_mistakes[i] = 0;
+		acked_buffer[i] = 0;
+		acked_time[i] = 0;
+		++i;
+	}
 
 	/* Precompute a bunch of the scaling factors that are used per-packet
 	 * based on SRTT of 100ms
