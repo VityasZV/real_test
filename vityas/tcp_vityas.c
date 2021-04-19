@@ -66,7 +66,7 @@ static u32 acked_buffer[buffs_size];
 static u32 acked_time[buffs_size];
 static int buf_pointer = 0;
 static int inserted_values = 0;
-static float probability = 0.9;
+static int probability = 90;
 static u32 z_index;
 static u32 rms;
 
@@ -130,7 +130,7 @@ void root_mean_square_deviation(void) {
 	temp = 0;
 	while (sqr != temp) {
 		temp = sqr;
-		sqr = ( rms/temp + temp) >> 1;
+		sqr = (rms/temp + temp) >> 1;
 	}
 	rms = sqr;
 }
@@ -209,7 +209,7 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 		}
 		estimated_speed = estimated_speed / inserted_values;
 		root_mean_square_deviation();
-		error = z_index * rms;
+		error = z_index * rms / 1000;
 		if (error > estimated_speed) {
 			error = estimated_speed -1;
 		}
@@ -479,7 +479,7 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 	}
 	estimated_speed = estimated_speed / inserted_values;
 	root_mean_square_deviation();
-	error = z_index * rms;
+	error = z_index * rms / 1000;
 	if (error > estimated_speed) {
 		error = estimated_speed - 1;
 	}
@@ -660,8 +660,8 @@ static int __init vityastcp_register(void)
 		++i;
 	}
 
-	if ((u32)(probability*10) == 9) { //fuck its so impossible to work with float in kernel man dumb shit
-		z_index = 1; //1.645
+	if (probability == 90) { //fuck its so impossible to work with float in kernel man dumb shit
+		z_index = 1645; //1.645
 	}
 
 	/* Precompute a bunch of the scaling factors that are used per-packet
