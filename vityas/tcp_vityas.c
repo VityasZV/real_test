@@ -61,9 +61,14 @@ static u32 buffer_speed[buffs_size]; //saving last 3 speeds
 static u32 buffer_estimated_speed[buffs_size];
 static s64 last_mistakes[buffs_size];
 static u32 new_acked = 0;
+static u32 all_acked = 0;
 static u32 acked_buffer[buffs_size];
 static u32 acked_time[buffs_size];
 static int buf_pointer = 0;
+static int inserted_values = 0;
+static float probability = 0.9;
+static u32 z_index;
+static u32 rms;
 
 static u32 cube_rtt_scale __read_mostly;
 static u32 beta_scale __read_mostly;
@@ -111,6 +116,25 @@ struct bictcp {
 	u32	last_ack;	/* last time when the ACK spacing is close */
 	u32	curr_rtt;	/* the minimum rtt of current round */
 };
+
+void root_mean_square_deviation(void) {
+	int i = 0;
+	rms = 0;
+	while (i < buffs_size) {
+		rms+=last_mistakes[i]*last_mistakes[i];
+		++i;
+	}
+	rms/=inserted_values;
+	u32 temp, sqr;
+	sqr = rms >> 1;
+	temp = 0;
+	while (sqr != temp) {
+		temp = sqr;
+		sqr = ( rms/temp + temp) >> 1;
+	}
+	rms = sqr;
+}
+
 
 static inline void bictcp_reset(struct bictcp *ca)
 {
@@ -174,22 +198,34 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 		struct bictcp *ca = inet_csk_ca(sk);
 		int i = 0;
 		u32 estimated_speed = 0;
-		s64 error = 0;
+		u32 error = 0;
 		while (i < buffs_size) {
 			estimated_speed += buffer_speed[i];
 			error+=last_mistakes[i];
 			++i;
 		}
-		estimated_speed = estimated_speed / 3;
-		error = error / 3;
+		if (inserted_values == 0) {
+			inserted_values = 1;
+		}
+		estimated_speed = estimated_speed / inserted_values;
+		root_mean_square_deviation();
+		error = z_index * rms;
+		if (error > estimated_speed) {
+			error = estimated_speed -1;
+		}
 		i = 0;
+		new_acked = 0;
+		all_acked = 0;
+		inserted_values = 0;
 		while (i < buffs_size) {
 			buffer_speed[i] = 0;
 			buffer_estimated_speed[i] = 0;
 			last_mistakes[i] = 0;
-			++i;
+			acked_buffer[i] = 0;
+			acked_time[i] = 0;
+			++i;	
 		}
-		printk(KERN_INFO "RESTART estimated speed = %u; step = %lld", estimated_speed, error);
+		printk(KERN_INFO "RESTART estimated speed = %u; step = %u", estimated_speed, error);
 		tp->prior_cwnd = estimated_speed - (u32)(error);
 	}
 }
@@ -252,19 +288,25 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 	printk(KERN_INFO "CWND UPDATE");
 	ca->ack_cnt += acked;	/* count the number of ACKed packets */
 	new_acked += acked;
+
 	if (new_acked >= 50) {
-		acked_buffer[buf_pointer] = new_acked;
+		all_acked+=new_acked;
+		acked_buffer[buf_pointer] = all_acked;
 		acked_time[buf_pointer] = jiffies / HZ;
-		printk(KERN_INFO "acked packets %u at time %u", new_acked, jiffies / HZ);
+		printk(KERN_INFO "acked packets %u at time %lu", all_acked, jiffies / HZ);
 		buf_pointer+=1;
 		new_acked = 0;
 	}
 	if (buf_pointer > buffs_size) {
+		all_acked = 0;
 		buf_pointer = 0;
-		
+		printk(KERN_INFO "acked buffer: %u %u %u", acked_buffer[0], acked_buffer[1], acked_buffer[2]);
 		u32 new_speed = acked_buffer[buffs_size-1] - acked_buffer[0];
 		u32 all_time = acked_time[buffs_size-1] - acked_time[0];
-		
+		if (all_time == 0) {
+			printk(KERN_INFO "wtf time is zero");
+			all_time = 1;
+		}
 		new_speed = new_speed / all_time;
 		printk(KERN_INFO "new speed = %u", new_speed);
 		int i = 0;
@@ -276,13 +318,21 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 		}
 		i = 0;
 		buffer_speed[buffs_size-1] = new_speed;
-		last_mistakes[buffs_size-1] = new_speed - buffer_estimated_speed[buffs_size-2];
+		if (inserted_values < buffs_size) {
+			inserted_values+=1;
+		}
+		if (new_speed >= buffer_estimated_speed[buffs_size-2]) {
+			last_mistakes[buffs_size-1] = new_speed - buffer_estimated_speed[buffs_size-2];
+		}
+		else {
+			last_mistakes[buffs_size-1] = buffer_estimated_speed[buffs_size-2] - new_speed;
+		}
 		u32 estimated_speed = 0;		
 		while (i < buffs_size) {
 			estimated_speed += buffer_speed[i];
 			++i;
 		}
-		estimated_speed = estimated_speed / buffs_size;
+		estimated_speed = estimated_speed / inserted_values;
 		buffer_estimated_speed[buffs_size-1] = estimated_speed;
 		printk(KERN_INFO "F estimated speed = %u", estimated_speed);
 	}
@@ -419,20 +469,31 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 
 	u32 result = 0;
 	u32 estimated_speed = 0;
-	s64 error = 0;
+	u32 error = 0;
 	while (i < buffs_size) {
 		estimated_speed+=buffer_speed[i];
-		error+=last_mistakes[i];
 		++i;
 	}
-	estimated_speed = estimated_speed / buffs_size;
-	error = error / buffs_size;
+	if (inserted_values == 0) {
+		inserted_values = 1;
+	}
+	estimated_speed = estimated_speed / inserted_values;
+	root_mean_square_deviation();
+	error = z_index * rms;
+	if (error > estimated_speed) {
+		error = estimated_speed - 1;
+	}
+	printk(KERN_INFO "error=%u; rms=%u; z_index=%u", error, rms, z_index);
 
 	printk(KERN_INFO "BUFFER SPEED: %u %u %u", buffer_speed[0], buffer_speed[1], buffer_speed[2]);
 	printk(KERN_INFO "BUFFER ESTIMATED_SPEED: %u %u %u", buffer_estimated_speed[0], buffer_estimated_speed[1], buffer_estimated_speed[2]);
 
 	printk(KERN_INFO "BUFFER ERRORS: %lld %lld %lld", last_mistakes[0], last_mistakes[1], last_mistakes[2]);
 	new_acked = 0;
+	all_acked=0;
+	inserted_values = 0;
+	buf_pointer = 0;
+	i = 0;
 	while (i < buffs_size) {
 		buffer_speed[i] = 0;
 		buffer_estimated_speed[i] = 0;
@@ -441,7 +502,7 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 		acked_time[i] = 0;
 		++i;	
 	}
-	printk(KERN_INFO "RESTART estimated speed = %u; step = %lld", estimated_speed, error);
+	printk(KERN_INFO "RESTART estimated speed = %u; step = %u", estimated_speed, error);
 		// tp->prior_cwnd = estimated_speed - (u32)(error);
 	/* Wmax and fast convergence */
 	if (tp->snd_cwnd < ca->last_max_cwnd && fast_convergence)
@@ -587,6 +648,9 @@ static int __init vityastcp_register(void)
 	printk(KERN_INFO "Vityas test loaded");
 	int i = 0;
 	new_acked = 0;
+	all_acked = 0;
+	inserted_values = 0;
+	buf_pointer = 0;
 	while (i < buffs_size) {
 		buffer_speed[i] = 0;
 		buffer_estimated_speed[i] = 0;
@@ -594,6 +658,10 @@ static int __init vityastcp_register(void)
 		acked_buffer[i] = 0;
 		acked_time[i] = 0;
 		++i;
+	}
+
+	if ((u32)(probability*10) == 9) { //fuck its so impossible to work with float in kernel man dumb shit
+		z_index = 1; //1.645
 	}
 
 	/* Precompute a bunch of the scaling factors that are used per-packet

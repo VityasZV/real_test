@@ -33,13 +33,13 @@ __used __section(__versions) = {
 	{ 0xf1969a8e, "__usecs_to_jiffies" },
 	{ 0xe12abdca, "tcp_cong_avoid_ai" },
 	{ 0xc2d96a60, "tcp_slow_start" },
+	{ 0xc5850110, "printk" },
 	{ 0x837b7b09, "__dynamic_pr_debug" },
 	{ 0x15ba50a6, "jiffies" },
-	{ 0xc5850110, "printk" },
 	{ 0xbdfb6dbb, "__fentry__" },
 };
 
 MODULE_INFO(depends, "");
 
 
-MODULE_INFO(srcversion, "47785A0A668526A4CFFC024");
+MODULE_INFO(srcversion, "2512648F3CE0F8C85C0E6A1");
