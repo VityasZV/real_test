@@ -27,6 +27,7 @@ static const struct modversion_info ____versions[]
 __used __section(__versions) = {
 	{ 0x9de7765d, "module_layout" },
 	{ 0x69de56ed, "param_ops_int" },
+	{ 0x9d116066, "param_ops_short" },
 	{ 0x75cfe52a, "tcp_reno_undo_cwnd" },
 	{ 0xf0550e09, "tcp_unregister_congestion_control" },
 	{ 0xa7837ed2, "tcp_register_congestion_control" },
@@ -42,4 +43,4 @@ __used __section(__versions) = {
 MODULE_INFO(depends, "");
 
 
-MODULE_INFO(srcversion, "AF5D064B313C66C47000FB8");
+MODULE_INFO(srcversion, "7770B51FDA37CA8355B1F6C");

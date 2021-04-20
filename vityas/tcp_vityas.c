@@ -66,9 +66,10 @@ static u32 acked_buffer[buffs_size];
 static u32 acked_time[buffs_size];
 static int buf_pointer = 0;
 static int inserted_values = 0;
-static int probability = 90;
+static short int probability = 60;
 static u32 z_index;
 static u32 rms;
+static short int packet_limit = 50;
 
 static u32 cube_rtt_scale __read_mostly;
 static u32 beta_scale __read_mostly;
@@ -94,6 +95,12 @@ module_param(hystart_low_window, int, 0644);
 MODULE_PARM_DESC(hystart_low_window, "lower bound cwnd for hybrid slow start");
 module_param(hystart_ack_delta_us, int, 0644);
 MODULE_PARM_DESC(hystart_ack_delta_us, "spacing between ack's indicating train (usecs)");
+
+module_param(probability, short, 0);
+MODULE_PARM_DESC(probability, "A short integer for describing probability");
+module_param(packet_limit, short, 0);
+MODULE_PARM_DESC(packet_limit, "limit for renewing average speed value");
+
 
 /* BIC TCP Parameters */
 struct bictcp {
@@ -209,7 +216,7 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 		}
 		estimated_speed = estimated_speed / inserted_values;
 		root_mean_square_deviation();
-		error = z_index * rms / 1000;
+		error = z_index * rms / 100;
 		if (error > estimated_speed) {
 			error = estimated_speed -1;
 		}
@@ -289,7 +296,7 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 	ca->ack_cnt += acked;	/* count the number of ACKed packets */
 	new_acked += acked;
 
-	if (new_acked >= 50) {
+	if (new_acked >= (u32)(packet_limit)) {
 		all_acked+=new_acked;
 		acked_buffer[buf_pointer] = all_acked;
 		acked_time[buf_pointer] = jiffies / HZ;
@@ -479,7 +486,7 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 	}
 	estimated_speed = estimated_speed / inserted_values;
 	root_mean_square_deviation();
-	error = z_index * rms / 1000;
+	error = z_index * rms / 100;
 	if (error > estimated_speed) {
 		error = estimated_speed - 1;
 	}
@@ -510,7 +517,7 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 			/ (2 * BICTCP_BETA_SCALE);
 	else
 		ca->last_max_cwnd = tp->snd_cwnd;
-	printk(KERN_INFO "Returning max of (2, vityas=%u), but cubic could be ", (estimated_speed - error, tp->snd_cwnd * beta) / BICTCP_BETA_SCALE);
+	printk(KERN_INFO "Returning max of (2, vityas=%u), but cubic could be %u", estimated_speed - error, tp->snd_cwnd * beta / BICTCP_BETA_SCALE);
 	result = max(2U, estimated_speed - error);
 	// printk(KERN_INFO "Returning max of (cubic=%u, 2, vityas=%u)", (tp->snd_cwnd * beta) / BICTCP_BETA_SCALE, estimated_speed - (u32)(error));
 	// result = max(max((tp->snd_cwnd * beta) / BICTCP_BETA_SCALE, 2U), estimated_speed - (u32)(error));
@@ -661,9 +668,16 @@ static int __init vityastcp_register(void)
 		acked_time[i] = 0;
 		++i;
 	}
+	printk(KERN_INFO "Probability = %d Packet_limit = %d", probability, packet_limit);
 
 	if (probability == 90) { //fuck its so impossible to work with float in kernel man dumb shit
-		z_index = 1645; //1.645
+		z_index = 165; //1.65
+	}
+	else if (probability == 77) {
+		z_index = 75;
+	}
+	else if (probability == 60) {
+		z_index = 26;
 	}
 
 	/* Precompute a bunch of the scaling factors that are used per-packet
