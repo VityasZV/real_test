@@ -100,8 +100,8 @@ do
 
 	echo "setting tc params..."
 		
-	# ip netns exec ${array_host[1]} tc qdisc add dev ${array_eth[1]} root netem delay 200ms
-	# ip netns exec ${array_host[1]} tc qdisc add dev ${array_eth[1]} root tbf rate 1mbit burst 32kbit latency 400ms
+	ip netns exec ${array_host[1]} tc qdisc add dev ${array_eth[1]} root netem delay 200ms
+	ip netns exec ${array_host[1]} tc qdisc add dev ${array_eth[1]} root tbf rate 1mbit burst 32kbit latency 400ms
 
 
 	echo "VITYAS Experiment start (P=$_PROBABILITY; L=$_PACKET_LIMIT):"
