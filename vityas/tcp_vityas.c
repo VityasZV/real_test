@@ -132,7 +132,12 @@ void root_mean_square_deviation(void) {
 		rms+=last_mistakes[i]*last_mistakes[i];
 		++i;
 	}
-	rms/=inserted_values;
+	if (inserted_values != 0) {
+		rms/=inserted_values;
+	}
+	else {
+		return;
+	}
 	u32 temp, sqr;
 	sqr = rms >> 1;
 	temp = 0;
@@ -292,7 +297,7 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 {
 	u32 delta, bic_target, max_cnt;
 	u64 offs, t;
-	printk(KERN_INFO "CWND UPDATE");
+	printk(KERN_INFO "UPDATE cwnd = %u", cwnd);
 	ca->ack_cnt += acked;	/* count the number of ACKed packets */
 	new_acked += acked;
 

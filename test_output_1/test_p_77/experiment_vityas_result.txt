@@ -1,0 +1,2 @@
+[  178.081163] Probability = 77 Packet_limit = 65
+[  178.115611] netem: version 1.3
