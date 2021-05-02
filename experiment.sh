@@ -59,7 +59,7 @@ done
 
 
 echo "setting tc params..."
-ip netns exec ${array_host[1]} tc qdisc add dev ${array_eth[1]} root handle 1: tbf rate 1mbit burst 32kbit latency 10ms
+ip netns exec ${array_host[1]} tc qdisc add dev ${array_eth[1]} root handle 1: tbf rate 100mbit burst 1536b latency 10ms
 ip netns exec ${array_host[1]} tc qdisc add dev ${array_eth[1]} parent 1:1 handle 10: netem delay 20ms
 # разобраться с командой сверху
 
@@ -88,8 +88,7 @@ rm -rf test_output
 mkdir test_output
 for i in 0
 do 
-	sleep 10
-	. clear_vityas
+	. clear_vityas.sh
 	cd vityas 
 	make 
 	rmmod tcp_vityas
@@ -101,14 +100,13 @@ do
 	# sysctl -w net.ipv4.tcp_congestion_control=vityas
 	dmesg -C
 	cd ..
-	mkdir test_output/test_p_$_PROBABILITY
+	mkdir test_output/test_p_$_PROBABILITY\_l_$_PACKET_LIMIT
 
 
 	echo "VITYAS Experiment start (P=$_PROBABILITY; L=$_PACKET_LIMIT):"
-	sleep 5
 	ip netns exec ${array_host[0]} iperf3 -s -f K  &
 	export iperf_serv=$!
-	ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -f K -t 14 -C vityas > test_output/test_p_$_PROBABILITY/experiment_vityas_output.txt &
+	ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -f K -t 14 -C vityas > test_output/test_p_$_PROBABILITY\_l_$_PACKET_LIMIT/experiment_test_p_$_PROBABILITY\_l_$_PACKET_LIMIT\_iperf.txt &
 	export iperf_client=$!
 
 	echo "waiting 30 seconds for iperf client to generate some traffic"
@@ -116,10 +114,8 @@ do
 	echo "killing iperf server"
 	kill $iperf_serv
 
-	echo "sleeping 5 and then dmesg output"
-	sleep 5
-	dmesg
-	ip netns exec ns_client dmesg > test_output/test_p_$_PROBABILITY/experiment_vityas_result.txt
+	echo "Saving dmesg of vityas alg"
+	ip netns exec ns_client dmesg > test_output/test_p_$_PROBABILITY\_l_$_PACKET_LIMIT/experiment_test_p_$_PROBABILITY\_l_$_PACKET_LIMIT\_dmesg.txt
 	dmesg -C
 	echo "VITYAS Experiment end."
 done 
@@ -129,14 +125,10 @@ echo "CUBIC Experiment start:"
 . clear_vityas.sh
 . set_cubic.sh
 
-# echo "setting tc params..."
-# ip netns exec ${array_host[1]} tc qdisc add dev ${array_eth[1]} root handle 1: tbf rate 1mbit burst 32kbit latency 100ms 
-# ip netns exec ${array_host[1]} tc qdisc add dev ${array_eth[1]} parent 1:1 handle 10: netem delay 20ms
 mkdir test_output/cubic
-sleep 5
 ip netns exec ${array_host[0]} iperf3 -s -f K  &
 export iperf_serv=$!
-ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -f K -t 14 -C cubic_t > test_output/cubic/experiment_cubic_output.txt &
+ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -f K -t 14 -C cubic_t > test_output/cubic/experiment_cubic_iperf.txt &
 export iperf_client=$!
 
 echo "waiting 30 seconds for iperf client to generate some traffic"
@@ -144,12 +136,13 @@ wait $iperf_client
 echo "killing iperf server"
 kill $iperf_serv
 
-echo "sleeping 5 and then dmesg output"
-sleep 5
-ip netns exec ns_client dmesg > test_output/cubic/experiment_cubic_result.txt
-dmesg
+echo "saving dmesg output of cubic"
+ip netns exec ns_client dmesg > test_output/cubic/experiment_cubic_dmesg.txt
+dmesg -C
 echo "CUBIC Experiment end."
 . clear_cubic.sh
 
 
-echo "finito la comedia mothafuckuz, look at the dmesg output in file experiment_result.txt"
+echo "finito la comedia, now Running Python script for saving csv_files of iperf and dmesg of each experiment..."
+
+python3 save_exp_to_csv_file.py
