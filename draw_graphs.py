@@ -23,7 +23,7 @@ class ExperimentDrawer(ExperimentHandler):
         output_filename_2 = f"{self.output_directory}/{experiment}/{experiment}_iperf_cwnd.png"
         needed_columns = [["time", "cwnd"], ["time", "bitrate"]]
         out_files = [output_filename_1, output_filename_2]
-        columns_t = [(0, 2), (0,1)]
+        columns_t = [(2), (1)]
         for columns, out_file, title, c_t in zip(needed_columns, out_files, [f"{experiment}_iperf_cwnd", f"{experiment}_iperf_speed"], columns_t):
             data = genfromtxt(input_filename, delimiter=',', skip_header=1, usecols=c_t)
             plt.plot(data)
@@ -38,7 +38,7 @@ class ExperimentDrawer(ExperimentHandler):
         output_filename_2 = f"{self.output_directory}/{experiment}/{experiment}_dmesg_cwnd.png"
         needed_columns = [["time", "CWND"],["time", "estimated_speed"]]
         out_files = [output_filename_1, output_filename_2]
-        columns_t = [(0,1), (0,2)]
+        columns_t = [(1), (2)]
         for columns, out_file, title, c_t in zip(needed_columns, out_files, [f"{experiment}_dmesg_cwnd", f"{experiment}_dmesg_speed"], columns_t):
             data = genfromtxt(input_filename, delimiter=',', skip_header=1, usecols=c_t)
             plt.xlabel(columns[0])

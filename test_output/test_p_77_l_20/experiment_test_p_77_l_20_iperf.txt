@@ -1,0 +1,9 @@
+Connecting to host 192.168.1.1, port 5201
+[  5] local 192.168.1.2 port 56889 connected to 192.168.1.1 port 5201
+[ ID] Interval           Transfer     Bitrate         Retr  Cwnd
+[  5]   0.00-1.00   sec  1.39 MBytes  1428 KBytes/sec    0    115 KBytes       
+[  5]   1.00-1.76   sec  1.18 MBytes  1588 KBytes/sec    0    154 KBytes       
+- - - - - - - - - - - - - - - - - - - - - - - - -
+[ ID] Interval           Transfer     Bitrate         Retr
+[  5]   0.00-1.76   sec  2.58 MBytes  1497 KBytes/sec    0             sender
+[  5]   0.00-1.76   sec  0.00 Bytes  0.00 KBytes/sec                  receiver

@@ -28,6 +28,7 @@
 #include <linux/module.h>
 #include <linux/math64.h>
 #include <net/tcp.h>
+
 #define BICTCP_BETA_SCALE    1024	/* Scale factor beta calculation
 					 * max_cwnd = snd_cwnd * beta
 					 */
@@ -43,8 +44,8 @@
 #define HYSTART_DELAY_MAX	(16000U)	/* 16 ms */
 #define HYSTART_DELAY_THRESH(x)	clamp(x, HYSTART_DELAY_MIN, HYSTART_DELAY_MAX)
 
-#define buffs_size 3
-#define acked_buff_size 50
+#define buffs_size 4
+#define ack_buff_size 50
 
 static int fast_convergence __read_mostly = 1;
 static int beta __read_mostly = 717;	/* = 717/1024 (BICTCP_BETA_SCALE) */
@@ -63,8 +64,8 @@ static u32 new_estimated_speed;
 static s64 last_mistakes[buffs_size];
 static u32 new_acked = 0;
 static u32 all_acked = 0;
-static u32 acked_buffer[acked_buff_size];
-static u32 acked_time[acked_buff_size];
+static u32 acked_buffer[ack_buff_size];
+static u32 acked_time[ack_buff_size];
 static int buf_pointer = 0;
 static int inserted_values = 0;
 static short int probability = 60;
@@ -233,12 +234,13 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 			buffer_speed[i] = 0;
 			new_estimated_speed = 0;
 			last_mistakes[i] = 0;
-			++i;	
+			++i;
 		}
 		i = 0;
-		while ( i < acked_buff_size) {
+		while (i < ack_buff_size) {
 			acked_buffer[i] = 0;
 			acked_time[i] = 0;
+			++i;	
 		}
 		printk(KERN_INFO "RESTART estimated speed = %u; step = %u", estimated_speed, error);
 		tp->prior_cwnd = estimated_speed - (u32)(error);
@@ -312,12 +314,12 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 		buf_pointer+=1;
 		new_acked = 0;
 	}
-	if (buf_pointer > acked_buff_size) {
+	if (buf_pointer > ack_buff_size) {
 		all_acked = 0;
 		buf_pointer = 0;
-		printk(KERN_INFO "acked buffer first middle last : %u %u %u", acked_buffer[0], acked_buffer[20], acked_buffer[48]);
-		u32 new_speed = acked_buffer[acked_buff_size-1] - acked_buffer[0];
-		u32 all_time = (acked_time[acked_buff_size-1] - acked_time[0]) / HZ;
+		printk(KERN_INFO "acked buffer: %u %u %u", acked_buffer[buffs_size-3], acked_buffer[buffs_size-2], acked_buffer[buffs_size-1]);
+		u32 new_speed = acked_buffer[buffs_size-1] - acked_buffer[0];
+		u32 all_time = (acked_time[buffs_size-1] - acked_time[0]) / HZ;
 		if (all_time == 0) {
 			printk(KERN_INFO "wtf time is zero");
 			all_time = 1;
@@ -515,7 +517,7 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 		++i;	
 	}
 	i = 0;
-	while (i < acked_buff_size) {
+	while (i < ack_buff_size) {
 		acked_buffer[i] = 0;
 		acked_time[i] = 0;
 	}
@@ -675,12 +677,15 @@ static int __init vityastcp_register(void)
 		new_estimated_speed = 0;
 		//buffer_estimated_speed[i] = 0;
 		last_mistakes[i] = 0;
+		acked_buffer[i] = 0;
+		acked_time[i] = 0;
 		++i;
 	}
 	i = 0;
-	while (i < acked_buff_size) {
+	while (i < ack_buff_size) {
 		acked_buffer[i] = 0;
 		acked_time[i] = 0;
+		++i;
 	}
 	printk(KERN_INFO "Probability = %d Packet_limit = %d", probability, packet_limit);
 
@@ -692,9 +697,6 @@ static int __init vityastcp_register(void)
 	}
 	else if (probability == 60) {
 		z_index = 26;
-	}
-	else {
-		z_index = 1;
 	}
 
 	/* Precompute a bunch of the scaling factors that are used per-packet

@@ -89,7 +89,7 @@ probability_array=(77 90 60)
 #experiment part
 rm -rf test_output
 mkdir test_output
-for i in 0 1 2
+for i in 0
 do 
 	. clear_vityas.sh
 	cd vityas 
@@ -157,3 +157,4 @@ echo "CUBIC Experiment end."
 echo "finito la comedia, now Running Python script for saving csv_files of iperf and dmesg of each experiment..."
 
 python3 save_exp_to_csv_file.py
+python3 draw_graphs.py

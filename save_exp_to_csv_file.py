@@ -37,7 +37,7 @@ class ExperimentHandler:
         textfile = open(os.getcwd()+f"/{input_filename}", 'r')
         filetext = textfile.read()
         textfile.close()
-        matches = re.findall("\d* KBytes/sec\s+\d*\s+[0-9,\.]+\s+", filetext)
+        matches = re.findall("\d* KBytes/sec\s+\d*\s+[0-9,\.]+\s+(?:KBytes|MBytes)", filetext)
 
         with open(os.getcwd()+ f"/{output_filename}", mode='w') as csv_file:
             field_names = ["time", "bitrate", "cwnd"]
@@ -46,7 +46,8 @@ class ExperimentHandler:
             for i, el in enumerate(matches):
                 bitrate_and_cwnd = re.findall("[0-9,\.]+", el) #first will be bitrate, last is cwnd
                 if bitrate_and_cwnd[-1].find('.') != -1:
-                    bitrate_and_cwnd[-1] = float(bitrate_and_cwnd[-1])*1000
+                    if len(re.findall("MBytes", el)) != 0:
+                        bitrate_and_cwnd[-1] = float(bitrate_and_cwnd[-1])*1000
                 writer.writerow({'time': i, 'bitrate': bitrate_and_cwnd[0], 'cwnd': bitrate_and_cwnd[-1]})
 
     def saving_results_from_dmesg(self, experiment) -> None:
