@@ -84,7 +84,7 @@ echo "IFCONFIG CHECKED Successfully"
 
 
 
-packet_limit_array=(20 50 100)
+packet_limit_array=(100 20 50)
 probability_array=(77 90 60)
 #experiment part
 rm -rf test_output
