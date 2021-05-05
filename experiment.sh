@@ -6,7 +6,7 @@ if [ "$(whoami)" != "root" ]; then
  	exit 1
 fi
 
-pip3 install scipy 
+pip3 install --force-reinstall scipy 
 
 array_eth=(eth1 eth2)
 array_host=(ns_server ns_client)
