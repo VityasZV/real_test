@@ -84,7 +84,7 @@ echo "IFCONFIG CHECKED Successfully"
 
 
 
-packet_limit_array=(65 50 100)
+packet_limit_array=(20 50 100)
 probability_array=(77 90 60)
 #experiment part
 rm -rf test_output
@@ -93,13 +93,13 @@ for i in 0 1 2
 do 
 	. clear_vityas.sh
 	cd vityas 
-	make 
+	make
 	rmmod tcp_vityas
 	# _PACKET_LIMIT _PROBABILITY env variables
 	export _PACKET_LIMIT=${packet_limit_array[$i]}
 	export _PROBABILITY=${probability_array[$i]}
 
-	insmod tcp_vityas.ko probability=$_PROBABILITY  packet_limit=$_PACKET_LIMIT
+	insmod tcp_vityas.ko probability=$_PROBABILITY packet_limit=$_PACKET_LIMIT
 	# sysctl -w net.ipv4.tcp_congestion_control=vityas
 	cd ..
 	mkdir test_output/test_p_$_PROBABILITY\_l_$_PACKET_LIMIT

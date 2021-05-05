@@ -28,7 +28,6 @@
 #include <linux/module.h>
 #include <linux/math64.h>
 #include <net/tcp.h>
-
 #define BICTCP_BETA_SCALE    1024	/* Scale factor beta calculation
 					 * max_cwnd = snd_cwnd * beta
 					 */
@@ -650,7 +649,7 @@ static void bictcp_acked(struct sock *sk, const struct ack_sample *sample)
 		hystart_update(sk, delay);
 }
 
-static struct tcp_congestion_ops cubictcp __read_mostly = {
+static struct tcp_congestion_ops vityastcp __read_mostly = {
 	.init		= bictcp_init,
 	.ssthresh	= bictcp_recalc_ssthresh,
 	.cong_avoid	= bictcp_cong_avoid,
@@ -694,6 +693,9 @@ static int __init vityastcp_register(void)
 	else if (probability == 60) {
 		z_index = 26;
 	}
+	else {
+		z_index = 1;
+	}
 
 	/* Precompute a bunch of the scaling factors that are used per-packet
 	 * based on SRTT of 100ms
@@ -723,13 +725,13 @@ static int __init vityastcp_register(void)
 	/* divide by bic_scale and by constant Srtt (100ms) */
 	do_div(cube_factor, bic_scale * 10);
 
-	return tcp_register_congestion_control(&cubictcp);
+	return tcp_register_congestion_control(&vityastcp);
 }
 
 static void __exit vityastcp_unregister(void)
 {
 	printk(KERN_INFO "Vityas test exit");
-	tcp_unregister_congestion_control(&cubictcp);
+	tcp_unregister_congestion_control(&vityastcp);
 }
 
 module_init(vityastcp_register);
