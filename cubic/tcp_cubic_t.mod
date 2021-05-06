@@ -1,2 +1,2 @@
-/home/parallels/Documents/real_test/cubic/tcp_cubic_t.o
+/home/victor/real_test/cubic/tcp_cubic_t.o
 
