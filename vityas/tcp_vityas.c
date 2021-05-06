@@ -317,9 +317,9 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 	if (buf_pointer > ack_buff_size) {
 		all_acked = 0;
 		buf_pointer = 0;
-		printk(KERN_INFO "acked buffer: %llu %llu %llu", acked_buffer[buffs_size-3], acked_buffer[buffs_size-2], acked_buffer[buffs_size-1]);
-		u64 new_speed = acked_buffer[buffs_size-1] - acked_buffer[0];
-		u64 all_time = (acked_time[buffs_size-1] - acked_time[0]) / HZ;
+		printk(KERN_INFO "acked buffer: %llu %llu %llu", acked_buffer[ack_buff_size-3], acked_buffer[ack_buff_size-2], acked_buffer[ack_buff_size-1]);
+		u64 new_speed = acked_buffer[ack_buff_size-1] - acked_buffer[0];
+		u64 all_time = (acked_time[ack_buff_size-1] - acked_time[0]) / HZ;
 		if (all_time == 0) {
 			printk(KERN_INFO "wtf time is zero");
 			all_time = 1;
