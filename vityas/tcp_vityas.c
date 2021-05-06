@@ -210,8 +210,8 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 		struct tcp_sock *tp = tcp_sk(sk);
 		struct bictcp *ca = inet_csk_ca(sk);
 		int i = 0;
-		u32 estimated_speed = 0;
-		u32 error = 0;
+		u64 estimated_speed = 0;
+		u64 error = 0;
 		while (i < buffs_size) {
 			estimated_speed += buffer_speed[i];
 			error+=last_mistakes[i];
@@ -221,7 +221,7 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 			estimated_speed = estimated_speed / inserted_values;
 		}
 		root_mean_square_deviation();
-		error = z_index * (u32)(rms) / 100;
+		error = z_index * rms / 100;
 		if (error > estimated_speed) {
 			error = estimated_speed -1;
 		}
@@ -243,7 +243,7 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 			++i;	
 		}
 		printk(KERN_INFO "RESTART estimated speed = %u; step = %u", estimated_speed, error);
-		tp->prior_cwnd = estimated_speed - (u32)(error);
+		tp->prior_cwnd = (u32)(estimated_speed - error);
 	}
 }
 

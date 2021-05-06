@@ -84,7 +84,7 @@ echo "IFCONFIG CHECKED Successfully"
 
 
 
-packet_limit_array=(100 20 50)
+packet_limit_array=(3000 500 1000)
 probability_array=(77 90 60)
 #experiment part
 rm -rf test_output
@@ -113,12 +113,12 @@ do
 	export iperf_serv=$!
 	ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 60 -C vityas > test_output/test_p_$_PROBABILITY\_l_$_PACKET_LIMIT/experiment_test_p_$_PROBABILITY\_l_$_PACKET_LIMIT\_iperf.txt &
 	export iperf_client=$!
-	EXPERIMENT="vityas_$i" python3 weibull_threads_iperf.py &
+	# EXPERIMENT="vityas_$i" python3 weibull_threads_iperf.py &
 	export weibull=$!
 	echo "waiting 60 seconds for iperf client to generate some traffic"
 	wait $iperf_client
-	echo "waiting weibull_threads"
-	wait $weibull
+	# echo "waiting weibull_threads"
+	# wait $weibull
 	echo "killing iperf server"
 	kill $iperf_serv
 
@@ -136,8 +136,8 @@ mkdir test_output/cubic
 start_time=$(date +"%T")
 ip netns exec ${array_host[0]} iperf3 -s -p 5201 -f K  &
 export iperf_serv=$!
-EXPERIMENT="cubic" python3 weibull_threads_iperf.py &
-export weibull=$!
+# EXPERIMENT="cubic" python3 weibull_threads_iperf.py &
+# export weibull=$!
 ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 60 -C cubic_t > test_output/cubic/experiment_cubic_iperf.txt &
 export iperf_client=$!
 
