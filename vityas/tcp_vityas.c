@@ -61,8 +61,8 @@ static int hystart_ack_delta_us __read_mostly = 2000;
 static u64 buffer_speed[buffs_size]; //saving last 3 speeds
 static u64 new_estimated_speed;
 static u64 last_mistakes[buffs_size];
-static u64 new_acked = 0;
-static u64 all_acked = 0;
+static u64 new_acked = 0U;
+static u64 all_acked = 0U;
 static u64 acked_buffer[ack_buff_size];
 static u64 acked_time[ack_buff_size];
 static int buf_pointer = 0;
@@ -188,7 +188,7 @@ static void bictcp_init(struct sock *sk)
 static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 {
 	if (event == CA_EVENT_TX_START) {
-		// printk(KERN_INFO "CA_EVENT_TX_START");
+		//printk(KERN_INFO "CA_EVENT_TX_START");
 		struct bictcp *ca = inet_csk_ca(sk);
 		u32 now = tcp_jiffies32;
 		s32 delta;
@@ -210,8 +210,8 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 		struct tcp_sock *tp = tcp_sk(sk);
 		struct bictcp *ca = inet_csk_ca(sk);
 		int i = 0;
-		u64 estimated_speed = 0;
-		u64 error = 0;
+		u64 estimated_speed = 0U;
+		u64 error = 0U;
 		while (i < buffs_size) {
 			estimated_speed += buffer_speed[i];
 			error+=last_mistakes[i];
@@ -306,10 +306,10 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 	ca->ack_cnt += acked;	/* count the number of ACKed packets */
 	new_acked += acked;
 
-	if (new_acked >= (u32)(packet_limit)) {
+	if (new_acked >= (u64)(packet_limit)) {
 		all_acked+=new_acked;
 		acked_buffer[buf_pointer] = all_acked;
-		acked_time[buf_pointer] = jiffies;
+		acked_time[buf_pointer] = (u64)jiffies;
 		printk(KERN_INFO "acked packets %llu at time %lu", all_acked, jiffies);
 		buf_pointer+=1;
 		new_acked = 0;
@@ -515,22 +515,22 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 	// printk(KERN_INFO "BUFFER ESTIMATED_SPEED: %u %u %u", buffer_estimated_speed[0], buffer_estimated_speed[1], buffer_estimated_speed[2]);
 
 	printk(KERN_INFO "BUFFER ERRORS: %llu %llu %llu", last_mistakes[0], last_mistakes[1], last_mistakes[2]);
-	new_acked = 0;
-	all_acked=0;
+	new_acked = 0U;
+	all_acked=0U;
 	inserted_values = 0;
 	buf_pointer = 0;
 	i = 0;
 	while (i < buffs_size) {
-		buffer_speed[i] = 0;
-		new_estimated_speed = 0;
+		buffer_speed[i] = 0U;
+		new_estimated_speed = 0U;
 		// buffer_estimated_speed[i] = 0;
-		last_mistakes[i] = 0;
+		last_mistakes[i] = 0U;
 		++i;	
 	}
 	i = 0;
 	while (i < ack_buff_size) {
-		acked_buffer[i] = 0;
-		acked_time[i] = 0;
+		acked_buffer[i] = 0U;
+		acked_time[i] = 0U;
 	}
 	printk(KERN_INFO "RESTART estimated speed = %llu; step = %llu", estimated_speed, error);
 		// tp->prior_cwnd = estimated_speed - (u32)(error);
@@ -679,21 +679,21 @@ static int __init vityastcp_register(void)
 	BUILD_BUG_ON(sizeof(struct bictcp) > ICSK_CA_PRIV_SIZE);
 	printk(KERN_INFO "Vityas test loaded");
 	int i = 0;
-	new_acked = 0;
-	all_acked = 0;
-	inserted_values = 0;
+	new_acked = 0U;
+	all_acked = 0U;
+	inserted_values = 0U;
 	buf_pointer = 0;
 	while (i < buffs_size) {
-		buffer_speed[i] = 0;
-		new_estimated_speed = 0;
+		buffer_speed[i] = 0U;
+		new_estimated_speed = 0U;
 		//buffer_estimated_speed[i] = 0;
-		last_mistakes[i] = 0;
+		last_mistakes[i] = 0U;
 		++i;
 	}
 	i = 0;
 	while (i < ack_buff_size) {
-		acked_buffer[i] = 0;
-		acked_time[i] = 0;
+		acked_buffer[i] = 0U;
+		acked_time[i] = 0U;
 		++i;
 	}
 	printk(KERN_INFO "Probability = %d Packet_limit = %d", probability, packet_limit);
@@ -706,6 +706,9 @@ static int __init vityastcp_register(void)
 	}
 	else if (probability == 60) {
 		z_index = 26;
+	}
+	else {
+		z_index = 100
 	}
 
 	/* Precompute a bunch of the scaling factors that are used per-packet
