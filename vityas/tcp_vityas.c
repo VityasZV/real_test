@@ -44,8 +44,8 @@
 #define HYSTART_DELAY_MAX	(16000U)	/* 16 ms */
 #define HYSTART_DELAY_THRESH(x)	clamp(x, HYSTART_DELAY_MIN, HYSTART_DELAY_MAX)
 
-#define buffs_size 100
-#define ack_buff_size 100
+#define buffs_size 20
+#define ack_buff_size 30
 
 static int fast_convergence __read_mostly = 1;
 static int beta __read_mostly = 717;	/* = 717/1024 (BICTCP_BETA_SCALE) */
@@ -245,7 +245,7 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 		new_acked = 0U;
 		all_acked = 0U;
 		inserted_values = 0;
-		buf_pointer = 0U;
+		buf_pointer = 0;
 		while (i < buffs_size) {
 			buffer_speed[i] = 0U;
 			new_estimated_speed = 0U;
@@ -263,6 +263,7 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 		if (tt == 0) {
 			tt = 1;
 		}
+		printk(KERN_INFO "CURRENT RTT AND TT: %llu; %llu", ca->curr_rtt, tt);
 		estim_round_started = false;
 		tp->prior_cwnd = (u32)(estimated_speed - error)*tt/ca->curr_rtt;
 	}
@@ -335,7 +336,7 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 			time_for_speed_calc[0] = acked_time[buf_pointer];
 			estim_round_started = true;
 		}
-		printk(KERN_INFO "acked packets %llu at time %lu", all_acked, jiffies);
+		printk(KERN_INFO "acked packets %llu at time %llu", all_acked, jiffies);
 		buf_pointer+=1;
 		new_acked = 0;
 	}
@@ -343,13 +344,17 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 		all_acked = 0;
 		buf_pointer = 0;
 		time_for_speed_calc[1] = acked_time[ack_buff_size-1];
-		printk(KERN_INFO "acked buffer: %llu %llu %llu", acked_buffer[ack_buff_size-3], acked_buffer[ack_buff_size-2], acked_buffer[ack_buff_size-1]);
+		acked_buffer[0] = packet_limit; //because of small bug
+		printk(KERN_INFO "acked buffer: %llu %llu %llu %llu %llu %llu %llu %llu", acked_buffer[0], acked_buffer[1], acked_buffer[2], acked_buffer[3], acked_buffer[4], acked_buffer[5], acked_buffer[6], acked_buffer[ack_buff_size-1]);
 		u64 new_speed = acked_buffer[ack_buff_size-1] - acked_buffer[0];
 		u64 all_time = (acked_time[ack_buff_size-1] - acked_time[0]) / HZ;
 		if (all_time == 0) {
 			printk(KERN_INFO "wtf time is zero");
 			all_time = 1;
 		}
+		printk(KERN_INFO "acked time buffer: %llu %llu", acked_time[0], acked_time[ack_buff_size-1]);
+		printk(KERN_INFO "all_time and all packets: %llu %llu", all_time, new_speed);
+
 		new_speed = new_speed / all_time;
 		printk(KERN_INFO "new speed = %llu", new_speed);
 		int i = 0;
@@ -384,8 +389,8 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 		printk(KERN_INFO "F estimated speed = %llu", estimated_speed);
 		i = 0;
 		while (i < ack_buff_size) {
-			acked_buffer[i] = 0;
-			acked_time[i] = 0;
+			acked_buffer[i] = 0U;
+			acked_time[i] = 0U;
 			++i;	
 		}
 	}
@@ -537,12 +542,12 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 	}
 	printk(KERN_INFO "error=%llu; rms=%llu; z_index=%llu", error, rms, z_index);
 
-	printk(KERN_INFO "BUFFER SPEED: %llu %llu %llu", buffer_speed[0], buffer_speed[1], buffer_speed[2]);
+	printk(KERN_INFO "BUFFER SPEED: %llu %llu %llu", buffer_speed[buffs_size-3], buffer_speed[buffs_size - 2], buffer_speed[buffs_size - 1]);
 	// printk(KERN_INFO "BUFFER ESTIMATED_SPEED: %u %u %u", buffer_estimated_speed[0], buffer_estimated_speed[1], buffer_estimated_speed[2]);
 
-	printk(KERN_INFO "BUFFER ERRORS: %llu %llu %llu", last_mistakes[0], last_mistakes[1], last_mistakes[2]);
+	printk(KERN_INFO "BUFFER ERRORS: %llu %llu %llu", last_mistakes[buffs_size - 3], last_mistakes[buffs_size - 2], last_mistakes[buffs_size - 1]);
 	new_acked = 0U;
-	all_acked=0U;
+	all_acked = 0U;
 	inserted_values = 0;
 	buf_pointer = 0;
 	i = 0;
@@ -567,13 +572,14 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 			/ (2 * BICTCP_BETA_SCALE);
 	else
 		ca->last_max_cwnd = tp->snd_cwnd;
-	printk(KERN_INFO "Returning max of (2, vityas=%llu), but cubic could be %u", estimated_speed - error, tp->snd_cwnd * beta / BICTCP_BETA_SCALE);
 	u64 tt = (time_for_speed_calc[1] - time_for_speed_calc[0]) / HZ;
 	if (tt == 0) {
 		tt = 1;
 	}
+	printk(KERN_INFO "CURRENT RTT AND TT: %llu; %llu", ca->curr_rtt, tt);
+	printk(KERN_INFO "Returning max of (2, vityas=%llu), but cubic could be %u", (u32)(estimated_speed - error)*tt*1000/ca->curr_rtt, tp->snd_cwnd * beta / BICTCP_BETA_SCALE);
 	estim_round_started = false;
-	result = max(2U, (u32)(estimated_speed - error)*tt/ca->curr_rtt);
+	result = max(2U, (u32)(estimated_speed - error)*tt*1000/ca->curr_rtt);
 	// printk(KERN_INFO "Returning max of (cubic=%u, 2, vityas=%u)", (tp->snd_cwnd * beta) / BICTCP_BETA_SCALE, estimated_speed - (u32)(error));
 	// result = max(max((tp->snd_cwnd * beta) / BICTCP_BETA_SCALE, 2U), estimated_speed - (u32)(error));
 	return result;
@@ -713,12 +719,11 @@ static int __init vityastcp_register(void)
 	int i = 0;
 	new_acked = 0U;
 	all_acked = 0U;
-	inserted_values = 0U;
+	inserted_values = 0;
 	buf_pointer = 0;
 	while (i < buffs_size) {
 		buffer_speed[i] = 0U;
 		new_estimated_speed = 0U;
-		//buffer_estimated_speed[i] = 0;
 		last_mistakes[i] = 0U;
 		++i;
 	}
@@ -729,6 +734,7 @@ static int __init vityastcp_register(void)
 		++i;
 	}
 	printk(KERN_INFO "Probability = %d Packet_limit = %d", probability, packet_limit);
+	printk(KERN_INFO "init acked_buf %llu %llu", acked_buffer[0], acked_time[0]);
 
 	if (probability == 90) { //fuck its so impossible to work with float in kernel man dumb shit
 		z_index = 165; //1.65

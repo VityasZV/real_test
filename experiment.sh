@@ -82,6 +82,8 @@ probability_array=(77 90 60)
 rm -rf test_output
 mkdir test_output
 for i in 0
+do
+for j in 0
 do 
 	. clear_vityas.sh
 	cd vityas 
@@ -89,7 +91,7 @@ do
 	rmmod tcp_vityas
 	# _PACKET_LIMIT _PROBABILITY env variables
 	export _PACKET_LIMIT=${packet_limit_array[$i]}
-	export _PROBABILITY=${probability_array[$i]}
+	export _PROBABILITY=${probability_array[$j]}
 
 	insmod tcp_vityas.ko probability=$_PROBABILITY packet_limit=$_PACKET_LIMIT
 	cd ..
@@ -116,7 +118,8 @@ do
 	echo "Saving dmesg of vityas alg start time: $start_time"
 	journalctl -k --since $start_time > test_output/test_p_$_PROBABILITY\_l_$_PACKET_LIMIT/experiment_test_p_$_PROBABILITY\_l_$_PACKET_LIMIT\_dmesg.txt
 	echo "VITYAS Experiment end."
-done 
+done
+done
 
 echo "CUBIC Experiment start:"
 

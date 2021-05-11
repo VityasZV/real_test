@@ -53,6 +53,8 @@ class ExperimentHandler:
     def saving_results_from_dmesg(self, experiment) -> None:
         input_filename = f"{self.input_directory}/{experiment}/experiment_{experiment}_dmesg.txt"
         output_filename = f"{self.output_directory}/{experiment}/{experiment}_dmesg_cwnd.csv"
+        output_filename_filtr = f"{self.output_directory}/{experiment}/{experiment}_dmesg_cwnd_f.csv"
+        output_filename_filtr_unused = f"{self.output_directory}/{experiment}/{experiment}_dmesg_cwnd_f_unused.csv"
 
         textfile = open(os.getcwd()+f"/{input_filename}", 'r')
         filetext = textfile.read()
@@ -64,6 +66,47 @@ class ExperimentHandler:
         speed_matches = [{"time": re.findall("\d\d:\d\d:\d\d", el)[0], "cwnd": "?", "speed": re.findall("\d+", re.findall("= \d+", el)[0])[0]} for el in speed_matches]
         all_matches = matches + speed_matches
         all_matches = sorted(all_matches, key=lambda tcs: tcs['time'])
+
+        with open(os.getcwd()+ f"/{output_filename_filtr_unused}", mode='w') as csv_file:
+            field_names = ["time", "CWND", "estimated_speed"]
+            writer = csv.DictWriter(csv_file, fieldnames=field_names)
+            writer.writeheader()
+            last_speed = ''
+            last_cwnd = ''
+            last_time = all_matches[0]['time']
+            time_i = 0
+            for el in all_matches:
+                if el['time'] == last_time:
+                    last_speed = max(el['speed'] if el['speed'] != "?" else last_speed, last_speed)
+                    last_cwnd = max(el['cwnd'] if el['cwnd'] != "?" else last_cwnd, last_cwnd)
+                else:
+                    writer.writerow({'time': time_i, 'CWND': last_cwnd, 'estimated_speed': last_speed})
+                    time_i+=1
+                    last_speed = max(el['speed'] if el['speed'] != "?" else last_speed, last_speed)
+                    last_cwnd = max(el['cwnd'] if el['cwnd'] != "?" else last_cwnd, last_cwnd)
+                    last_time = el['time']
+            writer.writerow({'time': time_i, 'CWND': last_cwnd, 'estimated_speed': last_speed})
+
+        with open(os.getcwd()+ f"/{output_filename_filtr}", mode='w') as csv_file:
+            field_names = ["time", "CWND", "estimated_speed"]
+            writer = csv.DictWriter(csv_file, fieldnames=field_names)
+            writer.writeheader()
+            last_speed = 0
+            last_cwnd = 0
+            last_time = all_matches[0]['time']
+            time_i = 0
+            for el in all_matches:
+                if el['cwnd'] == last_cwnd or el['cwnd'] == "?":
+                    last_speed = max(int(el['speed']) if el['speed'] != "?" else last_speed, last_speed)
+                    last_cwnd = el['cwnd'] if el['cwnd'] != "?" else last_cwnd
+                    last_time = el['time']
+                else:
+                    writer.writerow({'time': time_i, 'CWND': last_cwnd, 'estimated_speed': last_speed})
+                    time_i+=1
+                    last_speed = int(el['speed']) if el['speed'] != "?" else last_speed
+                    last_cwnd = el['cwnd'] if el['cwnd'] != "?" else last_cwnd
+                    last_time = el['time']
+
         with open(os.getcwd()+ f"/{output_filename}", mode='w') as csv_file:
             field_names = ["time", "CWND", "estimated_speed"]
             writer = csv.DictWriter(csv_file, fieldnames=field_names)
@@ -78,11 +121,9 @@ class ExperimentHandler:
             
 
 
-try:
+if __name__ == '__main__':
     experiment_handler = ExperimentHandler(input_directory="test_output", output_directory="test_output/csv_files")
     for experiment in experiment_handler.experiments:
         os.mkdir(os.getcwd()+f"/{experiment_handler.output_directory}/{experiment}")
         experiment_handler.saving_results_from_iperf(experiment)
         experiment_handler.saving_results_from_dmesg(experiment)
-except Exception as e:
-    print(f"Error while performing script: {e}")
