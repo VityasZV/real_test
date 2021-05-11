@@ -44,8 +44,8 @@
 #define HYSTART_DELAY_MAX	(16000U)	/* 16 ms */
 #define HYSTART_DELAY_THRESH(x)	clamp(x, HYSTART_DELAY_MIN, HYSTART_DELAY_MAX)
 
-#define buffs_size 3
-#define ack_buff_size 20
+#define buffs_size 100
+#define ack_buff_size 100
 
 static int fast_convergence __read_mostly = 1;
 static int beta __read_mostly = 717;	/* = 717/1024 (BICTCP_BETA_SCALE) */
@@ -65,6 +65,8 @@ static u64 new_acked = 0U;
 static u64 all_acked = 0U;
 static u64 acked_buffer[ack_buff_size];
 static u64 acked_time[ack_buff_size];
+static u64 time_for_speed_calc[2];
+static bool estim_round_started = false;
 static int buf_pointer = 0;
 static int inserted_values = 0;
 static short int probability = 60;
@@ -125,6 +127,25 @@ struct bictcp {
 	u32	curr_rtt;	/* the minimum rtt of current round */
 };
 
+// u64 int_sqrt(u64 x)
+// {
+// 	u64 op, res, one;
+// 	op = x;
+// 	res = 0;
+// 	one = 1U << (BITS_PER_LONG - 2);
+// 	while (one > op)
+// 		one >>= 2;
+// 	while (one != 0) {
+// 		if (op >= res + one) {
+// 			op = op - (res + one);
+// 			res = res +  2 * one;
+// 		}
+// 		res /= 2;
+// 		one /= 4;
+// 	}
+// 	return res;
+// }
+
 void root_mean_square_deviation(void) {
 	int i = 0;
 	rms = 0;
@@ -138,13 +159,8 @@ void root_mean_square_deviation(void) {
 	else {
 		return;
 	}
-	u64 temp, sqr;
-	sqr = rms >> 1;
-	temp = 0;
-	while (sqr != temp) {
-		temp = sqr;
-		sqr = (rms/temp + temp) >> 1;
-	}
+	u64 sqr;
+	sqr = int_sqrt(rms);
 	rms = sqr;
 }
 
@@ -228,7 +244,7 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 		i = 0;
 		new_acked = 0U;
 		all_acked = 0U;
-		inserted_values = 0U;
+		inserted_values = 0;
 		buf_pointer = 0U;
 		while (i < buffs_size) {
 			buffer_speed[i] = 0U;
@@ -242,8 +258,13 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 			acked_time[i] = 0U;
 			++i;	
 		}
-		printk(KERN_INFO "RESTART estimated speed = %u; step = %u", estimated_speed, error);
-		tp->prior_cwnd = (u32)(estimated_speed - error);
+		printk(KERN_INFO "RESTART estimated speed = %llu; step = %llu", estimated_speed, error);
+		u64 tt = (time_for_speed_calc[1] - time_for_speed_calc[0]) / HZ;
+		if (tt == 0) {
+			tt = 1;
+		}
+		estim_round_started = false;
+		tp->prior_cwnd = (u32)(estimated_speed - error)*tt/ca->curr_rtt;
 	}
 }
 
@@ -310,6 +331,10 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 		all_acked+=new_acked;
 		acked_buffer[buf_pointer] = all_acked;
 		acked_time[buf_pointer] = (u64)jiffies;
+		if (!estim_round_started) {
+			time_for_speed_calc[0] = acked_time[buf_pointer];
+			estim_round_started = true;
+		}
 		printk(KERN_INFO "acked packets %llu at time %lu", all_acked, jiffies);
 		buf_pointer+=1;
 		new_acked = 0;
@@ -317,6 +342,7 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 	if (buf_pointer > ack_buff_size) {
 		all_acked = 0;
 		buf_pointer = 0;
+		time_for_speed_calc[1] = acked_time[ack_buff_size-1];
 		printk(KERN_INFO "acked buffer: %llu %llu %llu", acked_buffer[ack_buff_size-3], acked_buffer[ack_buff_size-2], acked_buffer[ack_buff_size-1]);
 		u64 new_speed = acked_buffer[ack_buff_size-1] - acked_buffer[0];
 		u64 all_time = (acked_time[ack_buff_size-1] - acked_time[0]) / HZ;
@@ -523,7 +549,6 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 	while (i < buffs_size) {
 		buffer_speed[i] = 0U;
 		new_estimated_speed = 0U;
-		// buffer_estimated_speed[i] = 0;
 		last_mistakes[i] = 0U;
 		++i;	
 	}
@@ -531,7 +556,9 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 	while (i < ack_buff_size) {
 		acked_buffer[i] = 0U;
 		acked_time[i] = 0U;
+		++i;
 	}
+	
 	printk(KERN_INFO "RESTART estimated speed = %llu; step = %llu", estimated_speed, error);
 		// tp->prior_cwnd = estimated_speed - (u32)(error);
 	/* Wmax and fast convergence */
@@ -541,7 +568,12 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 	else
 		ca->last_max_cwnd = tp->snd_cwnd;
 	printk(KERN_INFO "Returning max of (2, vityas=%llu), but cubic could be %u", estimated_speed - error, tp->snd_cwnd * beta / BICTCP_BETA_SCALE);
-	result = max(2U, (u32)(estimated_speed - error));
+	u64 tt = (time_for_speed_calc[1] - time_for_speed_calc[0]) / HZ;
+	if (tt == 0) {
+		tt = 1;
+	}
+	estim_round_started = false;
+	result = max(2U, (u32)(estimated_speed - error)*tt/ca->curr_rtt);
 	// printk(KERN_INFO "Returning max of (cubic=%u, 2, vityas=%u)", (tp->snd_cwnd * beta) / BICTCP_BETA_SCALE, estimated_speed - (u32)(error));
 	// result = max(max((tp->snd_cwnd * beta) / BICTCP_BETA_SCALE, 2U), estimated_speed - (u32)(error));
 	return result;
@@ -708,7 +740,7 @@ static int __init vityastcp_register(void)
 		z_index = 26;
 	}
 	else {
-		z_index = 100
+		z_index = 100;
 	}
 
 	/* Precompute a bunch of the scaling factors that are used per-packet

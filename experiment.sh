@@ -75,14 +75,6 @@ echo "client ifconfig: "
 ip netns exec ${array_host[1]} ifconfig
 echo "IFCONFIG CHECKED Successfully"
 
-# ip netns exec ns_client ping 192.168.1.1 -n 10 &
-# echo "waiting for ping"
-# wait $!
-
-# echo "ping finished"
-
-
-
 
 packet_limit_array=(100 50 80)
 probability_array=(77 90 60)
@@ -100,7 +92,6 @@ do
 	export _PROBABILITY=${probability_array[$i]}
 
 	insmod tcp_vityas.ko probability=$_PROBABILITY packet_limit=$_PACKET_LIMIT
-	# sysctl -w net.ipv4.tcp_congestion_control=vityas
 	cd ..
 	mkdir test_output/test_p_$_PROBABILITY\_l_$_PACKET_LIMIT
 	start_time=$(date +"%T")
@@ -113,12 +104,12 @@ do
 	export iperf_serv=$!
 	ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 60 -C vityas > test_output/test_p_$_PROBABILITY\_l_$_PACKET_LIMIT/experiment_test_p_$_PROBABILITY\_l_$_PACKET_LIMIT\_iperf.txt &
 	export iperf_client=$!
-	# EXPERIMENT="vityas_$i" python3 weibull_threads_iperf.py &
+	EXPERIMENT="vityas_$i" python3 weibull_threads_iperf.py &
 	export weibull=$!
 	echo "waiting 60 seconds for iperf client to generate some traffic"
 	wait $iperf_client
-	# echo "waiting weibull_threads"
-	# wait $weibull
+	echo "waiting weibull_threads"
+	wait $weibull
 	echo "killing iperf server"
 	kill $iperf_serv
 
@@ -136,8 +127,8 @@ mkdir test_output/cubic
 start_time=$(date +"%T")
 ip netns exec ${array_host[0]} iperf3 -s -p 5201 -f K  &
 export iperf_serv=$!
-# EXPERIMENT="cubic" python3 weibull_threads_iperf.py &
-# export weibull=$!
+EXPERIMENT="cubic" python3 weibull_threads_iperf.py &
+export weibull=$!
 ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 60 -C cubic_t > test_output/cubic/experiment_cubic_iperf.txt &
 export iperf_client=$!
 

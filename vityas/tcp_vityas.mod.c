@@ -31,6 +31,7 @@ __used __section(__versions) = {
 	{ 0x75cfe52a, "tcp_reno_undo_cwnd" },
 	{ 0xf0550e09, "tcp_unregister_congestion_control" },
 	{ 0xa7837ed2, "tcp_register_congestion_control" },
+	{ 0xb678366f, "int_sqrt" },
 	{ 0xf1969a8e, "__usecs_to_jiffies" },
 	{ 0xe12abdca, "tcp_cong_avoid_ai" },
 	{ 0xc2d96a60, "tcp_slow_start" },
@@ -43,4 +44,4 @@ __used __section(__versions) = {
 MODULE_INFO(depends, "");
 
 
-MODULE_INFO(srcversion, "02CE60429FBFCEADC8BDEB8");
+MODULE_INFO(srcversion, "1C507724DF717B54EB0D81D");

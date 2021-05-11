@@ -1,5 +1,6 @@
-#include <linux/build-salt.h>
 #include <linux/module.h>
+#define INCLUDE_VERMAGIC
+#include <linux/build-salt.h>
 #include <linux/vermagic.h>
 #include <linux/compiler.h>
 
@@ -9,7 +10,7 @@ MODULE_INFO(vermagic, VERMAGIC_STRING);
 MODULE_INFO(name, KBUILD_MODNAME);
 
 __visible struct module __this_module
-__attribute__((section(".gnu.linkonce.this_module"))) = {
+__section(.gnu.linkonce.this_module) = {
 	.name = KBUILD_MODNAME,
 	.init = init_module,
 #ifdef CONFIG_MODULE_UNLOAD
@@ -22,10 +23,23 @@ __attribute__((section(".gnu.linkonce.this_module"))) = {
 MODULE_INFO(retpoline, "Y");
 #endif
 
-static const char __module_depends[]
-__used
-__attribute__((section(".modinfo"))) =
-"depends=";
+static const struct modversion_info ____versions[]
+__used __section(__versions) = {
+	{ 0x9de7765d, "module_layout" },
+	{ 0x69de56ed, "param_ops_int" },
+	{ 0x75cfe52a, "tcp_reno_undo_cwnd" },
+	{ 0xf0550e09, "tcp_unregister_congestion_control" },
+	{ 0xa7837ed2, "tcp_register_congestion_control" },
+	{ 0xf1969a8e, "__usecs_to_jiffies" },
+	{ 0xe12abdca, "tcp_cong_avoid_ai" },
+	{ 0xc2d96a60, "tcp_slow_start" },
+	{ 0x837b7b09, "__dynamic_pr_debug" },
+	{ 0x15ba50a6, "jiffies" },
+	{ 0xc5850110, "printk" },
+	{ 0xbdfb6dbb, "__fentry__" },
+};
+
+MODULE_INFO(depends, "");
 
 
 MODULE_INFO(srcversion, "236C686669FADE8953AD762");
