@@ -42,6 +42,7 @@ class ExperimentDrawer(ExperimentHandler):
         for columns, out_file, title, c_t in zip(needed_columns, out_files, [f"{experiment}_dmesg_cwnd", f"{experiment}_dmesg_speed"], columns_t):
             data = genfromtxt(input_filename, delimiter=',', skip_header=1, usecols=c_t)
             print(data)
+
             plt.plot(data)
             plt.xlabel(columns[0])
             plt.ylabel(columns[1])
@@ -49,10 +50,29 @@ class ExperimentDrawer(ExperimentHandler):
             plt.savefig(out_file, bbox_inches='tight')
             plt.clf()
 
+    def foreign_results_from_dmesg(self, experiment)->None:
+        input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg_foreign.csv"
+        output_filename = f"{self.output_directory}/{experiment}/{experiment}_dmesg_foreign.png"
+        needed_columns = [["time", "CWND", "SPEED_CWND"]]
+        out_files = [output_filename]
+        columns_t = [(1),(2)]
+        labels = ["CWND", "SPEED_CWND"]
+        for columns, out_file, title in zip(needed_columns, out_files, [f"{experiment}_dmesg_foreign"]):
+            f, ax = plt.subplots()
+            for c_t, l in zip(columns_t, labels):
+                data = genfromtxt(input_filename, delimiter=',', skip_header=1, usecols=c_t)
+                ax.plot(data, label=l)
+                ax.legend()
+            plt.title(title)
+            plt.savefig(out_file, bbox_inches='tight')
+            plt.clf()
+
+
 if __name__ == '__main__':      
     experiment_drawer = ExperimentDrawer(input_directory="test_output/csv_files", output_directory="test_output/graphs")
     for experiment in experiment_drawer.experiments:
         os.mkdir(os.getcwd()+f"/{experiment_drawer.output_directory}/{experiment}")
         experiment_drawer.saving_results_from_iperf(experiment)
         experiment_drawer.saving_results_from_dmesg(experiment)
+        experiment_drawer.foreign_results_from_dmesg(experiment)
 

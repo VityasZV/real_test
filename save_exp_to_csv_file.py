@@ -118,6 +118,30 @@ class ExperimentHandler:
                 last_cwnd = el['cwnd'] if el['cwnd'] != "?" else last_cwnd
                 last_time = el['time']
                 writer.writerow({'time': last_time, 'CWND': last_cwnd, 'estimated_speed': last_speed})
+
+    def foreign_results_from_dmesg(self, experiment)->None:
+        input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg.txt"
+        output_filename = f"{self.output_directory}/{experiment}/{experiment}_dmesg_foreign.csv"
+
+        textfile = open(os.getcwd()+f"/{input_filename}", 'r')
+        filetext = textfile.read()
+        print(f"SIZE OF FILETEXT dmesg {len(filetext)}")
+        textfile.close()
+        matches = re.findall(".*\d\d:\d\d:\d\d.*FOREIGN CWND=[\d,?]+.*SPEED=\d*", filetext)
+        cwnd_speed_matches = [{"time": re.findall("\d\d:\d\d:\d\d", el)[0], "cwnd": re.findall("[\d,?]+", re.findall("CWND=[\d,?]+", el)[0])[0], "speed": re.findall("\d+", re.findall("SPEED=\d+", el)[0])[0]} for el in matches]
+        all_matches = sorted(cwnd_speed_matches, key=lambda tcs: tcs['time'])
+
+        with open(os.getcwd()+ f"/{output_filename}", mode='w') as csv_file:
+            field_names = ["time", "CWND", "SPEED_CWND"]
+            writer = csv.DictWriter(csv_file, fieldnames=field_names)
+            writer.writeheader()
+            last_speed = 0
+            last_cwnd = 0
+            for el in all_matches:
+                last_speed = el['speed'] if el['speed'] != "?" else last_speed
+                last_cwnd = el['cwnd'] if el['cwnd'] != "?" else last_cwnd
+                last_time = el['time']
+                writer.writerow({'time': last_time, 'CWND': last_cwnd, 'SPEED_CWND': last_speed})
             
 
 
@@ -127,3 +151,4 @@ if __name__ == '__main__':
         os.mkdir(os.getcwd()+f"/{experiment_handler.output_directory}/{experiment}")
         experiment_handler.saving_results_from_iperf(experiment)
         experiment_handler.saving_results_from_dmesg(experiment)
+        experiment_handler.foreign_results_from_dmesg(experiment)
