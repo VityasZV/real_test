@@ -19,8 +19,8 @@ class ExperimentDrawer(ExperimentHandler):
 
     def saving_results_from_iperf(self, experiment) -> None:
         input_filename = f"{self.input_directory}/{experiment}/{experiment}_iperf.csv"
-        output_filename_1 = f"{self.output_directory}/{experiment}/{experiment}_iperf_speed.png"
-        output_filename_2 = f"{self.output_directory}/{experiment}/{experiment}_iperf_cwnd.png"
+        output_filename_1 = f"{self.output_directory}/{experiment}/{experiment}_iperf_cwnd.png"
+        output_filename_2 = f"{self.output_directory}/{experiment}/{experiment}_iperf_speed.png"
         needed_columns = [["time", "cwnd"], ["time", "bitrate"]]
         out_files = [output_filename_1, output_filename_2]
         columns_t = [(2), (1)]

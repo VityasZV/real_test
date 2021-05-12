@@ -1,0 +1,1 @@
+cmd_/home/parallels/Documents/real_test/bbr/Module.symvers := sed 's/ko$$/o/' /home/parallels/Documents/real_test/bbr/modules.order | scripts/mod/modpost -m -a   -o /home/parallels/Documents/real_test/bbr/Module.symvers -e -i Module.symvers   -T -

@@ -76,17 +76,17 @@ ip netns exec ${array_host[1]} ifconfig
 echo "IFCONFIG CHECKED Successfully"
 
 
-foreign_method_array=(0 1 0)
+foreign_method_array=(0 1 2)
 packet_limit_array=(100 50 80)
 probability_array=(77 90 60)
 #experiment part
 rm -rf test_output
 mkdir test_output
-for k in 0
+for k in 0 1 2
 do
-for i in 0
+for i in 0 1 2
 do
-for j in 0
+for j in 0 1 2
 do 
 for e in 1
 do
@@ -108,7 +108,7 @@ do
 
 
 
-	echo "VITYAS Experiment start (P=$_PROBABILITY; L=$_PACKET_LIMIT):"
+	echo "VITYAS Experiment start (P=$_PROBABILITY; L=$_PACKET_LIMIT; F=$_FOREIGN):"
 
 	ip netns exec ${array_host[0]} iperf3 -s -p 5201 -f K  &
 	export iperf_serv=$!
@@ -130,19 +130,24 @@ done
 done
 done
 done
-
-echo "CUBIC Experiment start:"
-
 . clear_vityas.sh
-. set_cubic.sh
 
-mkdir test_output/cubic
+traditional=("cubic_t" "bbr_t")
+
+for k in 0 1
+do
+t=${traditional[$k]}
+echo "$t Experiment start:"
+
+. set_$t.sh
+
+mkdir test_output/$t
 start_time=$(date +"%T")
 ip netns exec ${array_host[0]} iperf3 -s -p 5201 -f K  &
 export iperf_serv=$!
-EXPERIMENT="cubic" python3 weibull_threads_iperf.py &
+EXPERIMENT="$t" python3 weibull_threads_iperf.py &
 export weibull=$!
-ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 60 -C cubic_t > test_output/cubic/cubic_iperf.txt &
+ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 60 -C $t > test_output/$t/$t\_iperf.txt &
 export iperf_client=$!
 
 echo "waiting 60 seconds for iperf client to generate some traffic"
@@ -153,9 +158,10 @@ echo "killing iperf server"
 kill $iperf_serv
 
 echo "saving dmesg output of cubic"
-journalctl -k --since $start_time > test_output/cubic/cubic_dmesg.txt
-echo "CUBIC Experiment end."
-. clear_cubic.sh
+journalctl -k --since $start_time > test_output/$t/$t\_dmesg.txt
+echo "$t Experiment end."
+. clear_$t.sh
+done
 
 
 echo "finito la comedia, now Running Python script for saving csv_files of iperf and dmesg of each experiment..."
