@@ -77,16 +77,16 @@ echo "IFCONFIG CHECKED Successfully"
 
 
 foreign_method_array=(0 1 2)
-packet_limit_array=(100 50 80)
-probability_array=(77 90 60)
+packet_limit_array=(30 50 80 100)
+probability_array=(10 20 30 45 60 70 90)
 #experiment part
 rm -rf test_output
 mkdir test_output
 for k in 0 1 2
 do
-for i in 0 1 2
+for i in 0 1 2 3
 do
-for j in 0 1 2
+for j in 0 1 2 3 4 5 6
 do 
 for e in 1
 do

@@ -863,11 +863,23 @@ static int __init vityastcp_register(void)
 	if (probability == 90) {
 		z_index = 165; //1.65
 	}
-	else if (probability == 77) {
-		z_index = 75;
+	else if (probability == 70) {
+		z_index = 104;
 	}
 	else if (probability == 60) {
-		z_index = 26;
+		z_index = 85;
+	}
+	else if (probability == 45) {
+		z_index = 60;
+	}
+	else if (probability == 30) {
+		z_index = 38;
+	}
+	else if (probability == 20) {
+		z_index = 24;
+	}
+	else if (probability == 10) {
+		z_index = 13;
 	}
 	else {
 		z_index = 100;
