@@ -31,6 +31,7 @@ class ExperimentDrawer(ExperimentHandler):
             plt.ylabel(columns[1])
             plt.savefig(out_file, bbox_inches='tight')
             plt.clf()
+            # plt.close()
 
     def saving_results_from_dmesg(self, experiment) -> None:
         input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg.csv"
@@ -42,13 +43,13 @@ class ExperimentDrawer(ExperimentHandler):
         for columns, out_file, title, c_t in zip(needed_columns, out_files, [f"{experiment}_dmesg_cwnd", f"{experiment}_dmesg_speed"], columns_t):
             data = genfromtxt(input_filename, delimiter=',', skip_header=1, usecols=c_t)
             print(data)
-
             plt.plot(data)
             plt.xlabel(columns[0])
             plt.ylabel(columns[1])
             plt.title(title)
             plt.savefig(out_file, bbox_inches='tight')
             plt.clf()
+            # plt.close()
 
     def foreign_results_from_dmesg(self, experiment)->None:
         input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg_foreign.csv"

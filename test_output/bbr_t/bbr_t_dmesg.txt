@@ -1,7 +1,0 @@
--- Logs begin at Wed 2021-03-31 13:44:15 MSK, end at Wed 2021-05-12 13:36:52 MSK. --
-May 12 13:36:00 parallels-Parallels-Virtual-Platform kernel: Cubic test exit
-May 12 13:36:11 parallels-Parallels-Virtual-Platform kernel: BBR test loaded
-May 12 13:36:17 parallels-Parallels-Virtual-Platform kernel: UPDATE cwnd = 18
-May 12 13:36:22 parallels-Parallels-Virtual-Platform kernel: UPDATE cwnd = 98
-May 12 13:36:42 parallels-Parallels-Virtual-Platform kernel: UPDATE cwnd = 112
-May 12 13:36:52 parallels-Parallels-Virtual-Platform kernel: UPDATE cwnd = 112

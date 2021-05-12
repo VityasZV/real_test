@@ -88,7 +88,7 @@ for i in 0 1 2 3
 do
 for j in 0 1 2 3 4 5 6
 do 
-for e in 1
+for e in 1 2
 do
 	. clear_vityas.sh
 	cd vityas 
