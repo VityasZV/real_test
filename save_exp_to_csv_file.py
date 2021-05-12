@@ -31,7 +31,7 @@ class ExperimentHandler:
             print("dir already created")
 
     def saving_results_from_iperf(self, experiment) -> None:
-        input_filename = f"{self.input_directory}/{experiment}/experiment_{experiment}_iperf.txt"
+        input_filename = f"{self.input_directory}/{experiment}/{experiment}_iperf.txt"
         output_filename = f"{self.output_directory}/{experiment}/{experiment}_iperf.csv"
 
         textfile = open(os.getcwd()+f"/{input_filename}", 'r')
@@ -51,10 +51,10 @@ class ExperimentHandler:
                 writer.writerow({'time': i, 'bitrate': bitrate_and_cwnd[0], 'cwnd': bitrate_and_cwnd[-1]})
 
     def saving_results_from_dmesg(self, experiment) -> None:
-        input_filename = f"{self.input_directory}/{experiment}/experiment_{experiment}_dmesg.txt"
-        output_filename = f"{self.output_directory}/{experiment}/{experiment}_dmesg_cwnd.csv"
-        output_filename_filtr = f"{self.output_directory}/{experiment}/{experiment}_dmesg_cwnd_f.csv"
-        output_filename_filtr_unused = f"{self.output_directory}/{experiment}/{experiment}_dmesg_cwnd_f_unused.csv"
+        input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg.txt"
+        output_filename = f"{self.output_directory}/{experiment}/{experiment}_dmesg.csv"
+        output_filename_filtr = f"{self.output_directory}/{experiment}/{experiment}_dmesg_f.csv"
+        output_filename_filtr_unused = f"{self.output_directory}/{experiment}/{experiment}_dmesg_f_unused.csv"
 
         textfile = open(os.getcwd()+f"/{input_filename}", 'r')
         filetext = textfile.read()

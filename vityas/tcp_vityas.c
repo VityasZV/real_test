@@ -45,7 +45,7 @@
 #define HYSTART_DELAY_THRESH(x)	clamp(x, HYSTART_DELAY_MIN, HYSTART_DELAY_MAX)
 
 #define buffs_size 20
-#define ack_buff_size 30
+#define ack_buff_size 20
 
 static int fast_convergence __read_mostly = 1;
 static int beta __read_mostly = 717;	/* = 717/1024 (BICTCP_BETA_SCALE) */
@@ -73,6 +73,7 @@ static short int probability = 60;
 static u64 z_index;
 static u64 rms;
 static short int packet_limit = 50;
+static short int foreign_method = 0; //0 for moving average, 1 for moving average with weights, 2 for trend aga 
 
 static u32 cube_rtt_scale __read_mostly;
 static u32 beta_scale __read_mostly;
@@ -103,6 +104,8 @@ module_param(probability, short, 0);
 MODULE_PARM_DESC(probability, "A short integer for describing probability");
 module_param(packet_limit, short, 0);
 MODULE_PARM_DESC(packet_limit, "limit for renewing average speed value");
+module_param(foreign_method, short, 0);
+MODULE_PARM_DESC(foreeign_method, "strategy for point foreign of speed");
 
 
 /* BIC TCP Parameters */
@@ -201,6 +204,168 @@ static void bictcp_init(struct sock *sk)
 		tcp_sk(sk)->snd_ssthresh = initial_ssthresh;
 }
 
+void go_to_zero(void) {
+	int i = 0;
+	new_acked = 0U;
+	all_acked = 0U;
+	inserted_values = 0;
+	new_estimated_speed = 0U;
+	buf_pointer = 0;
+
+	while (i < buffs_size) {
+		buffer_speed[i] = 0U;
+		last_mistakes[i] = 0U;
+		++i;
+	}
+	i = 0;
+	while (i < ack_buff_size) {
+		acked_buffer[i] = 0U;
+		acked_time[i] = 0U;
+		++i;	
+	}
+}
+u64 speed_foreign_moving_average(void) {
+	u64 estimated_speed = 0;
+	int i = 0;
+	while (i < buffs_size) {
+		estimated_speed += buffer_speed[i];
+		++i;
+	}
+	if (inserted_values == 0) {
+		printk("WTF INSERTED VALUES IS 0 if it should be at least 1");
+	}
+	else {
+		estimated_speed = estimated_speed / inserted_values;
+	}
+	return estimated_speed;
+}
+
+u64 speed_foreign_moving_average_weighted(void) {
+	u64 estimated_speed = 0;
+	int i = 0;
+	u64 divider = 0;
+	int j = 1;
+	while (i < buffs_size) {
+		if (buffer_speed[i] != 0) {
+			estimated_speed += buffer_speed[i];
+			divider+=j;
+			j+=1;
+		}
+		++i;
+	}
+	if (divider == 0) {
+		printk("WTF INSERTED VALUES IS 0 if it should be at least 1");
+	}
+	else {
+		estimated_speed = estimated_speed / divider;
+	}
+	return estimated_speed;
+}
+
+u32 point_foreign_moving_average_weighted(struct bictcp *ca) {
+	int i = 0;
+	u64 estimated_speed = 0U;
+	u64 error = 0U;
+	u64 divider = 0;
+	int j = 1;
+
+	while (i < buffs_size) {
+		if (buffer_speed[i] != 0){
+			estimated_speed += j*buffer_speed[i];
+			error+=last_mistakes[i];
+			divider+=j;
+			j+=1;
+		}
+		
+		++i;
+	}
+	if (divider != 0) {
+		estimated_speed = estimated_speed / divider;
+	}
+	root_mean_square_deviation();
+	error = z_index * rms / 100;
+	if (error > estimated_speed) {
+		error = estimated_speed -1;
+	}
+	i = 0;
+
+	printk(KERN_INFO "error=%llu; rms=%llu; z_index=%llu", error, rms, z_index);
+
+	printk(KERN_INFO "BUFFER SPEED: %llu %llu %llu", buffer_speed[buffs_size-3], buffer_speed[buffs_size - 2], buffer_speed[buffs_size - 1]);
+	// printk(KERN_INFO "BUFFER ESTIMATED_SPEED: %u %u %u", buffer_estimated_speed[0], buffer_estimated_speed[1], buffer_estimated_speed[2]);
+
+	printk(KERN_INFO "BUFFER ERRORS: %llu %llu %llu", last_mistakes[buffs_size - 3], last_mistakes[buffs_size - 2], last_mistakes[buffs_size - 1]);
+	
+	go_to_zero();
+	
+	printk(KERN_INFO "RESTART estimated speed = %llu; step = %llu", estimated_speed, error);
+	u64 tt = (time_for_speed_calc[1] - time_for_speed_calc[0]) / HZ;
+	if (tt == 0) {
+		tt = 1;
+	}
+	printk(KERN_INFO "CURRENT RTT AND TT: %llu; %llu", ca->curr_rtt, tt);
+	estim_round_started = false;
+	return (u32)(estimated_speed - error)*tt/ca->curr_rtt;
+}
+
+u32 point_foreign_moving_average(struct bictcp *ca) {
+	int i = 0;
+	u64 estimated_speed = 0U;
+	u64 error = 0U;
+	while (i < buffs_size) {
+		estimated_speed += buffer_speed[i];
+		error+=last_mistakes[i];
+		++i;
+	}
+	if (inserted_values != 0) {
+		estimated_speed = estimated_speed / inserted_values;
+	}
+	root_mean_square_deviation();
+	error = z_index * rms / 100;
+	if (error > estimated_speed) {
+		error = estimated_speed -1;
+	}
+
+	printk(KERN_INFO "error=%llu; rms=%llu; z_index=%llu", error, rms, z_index);
+
+	printk(KERN_INFO "BUFFER SPEED: %llu %llu %llu", buffer_speed[buffs_size-3], buffer_speed[buffs_size - 2], buffer_speed[buffs_size - 1]);
+	// printk(KERN_INFO "BUFFER ESTIMATED_SPEED: %u %u %u", buffer_estimated_speed[0], buffer_estimated_speed[1], buffer_estimated_speed[2]);
+
+	printk(KERN_INFO "BUFFER ERRORS: %llu %llu %llu", last_mistakes[buffs_size - 3], last_mistakes[buffs_size - 2], last_mistakes[buffs_size - 1]);
+	
+	go_to_zero();
+	
+	printk(KERN_INFO "RESTART estimated speed = %llu; step = %llu", estimated_speed, error);
+	u64 tt = (time_for_speed_calc[1] - time_for_speed_calc[0]) / HZ;
+	if (tt == 0) {
+		tt = 1;
+	}
+	printk(KERN_INFO "CURRENT RTT AND TT: %llu; %llu", ca->curr_rtt, tt);
+	estim_round_started = false;
+	return (u32)(estimated_speed - error)*tt/ca->curr_rtt;
+}
+
+u32 point_foreign_final(struct bictcp *ca) {
+	if (foreign_method == 0) {
+		return point_foreign_moving_average(ca);
+	}
+	else if (foreign_method == 1) {
+		return point_foreign_moving_average_weighted(ca);
+	}
+	else return point_foreign_moving_average(ca);
+
+}
+
+u64 speed_foreign_final(void) {
+	if (foreign_method == 0) {
+		return speed_foreign_moving_average();
+	}
+	else if (foreign_method == 1) {
+		return speed_foreign_moving_average_weighted();
+	}
+	else return speed_foreign_moving_average();
+}
+
 static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 {
 	if (event == CA_EVENT_TX_START) {
@@ -225,47 +390,7 @@ static void bictcp_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 		printk(KERN_INFO "CA_EVENT_CWND_RESTART");
 		struct tcp_sock *tp = tcp_sk(sk);
 		struct bictcp *ca = inet_csk_ca(sk);
-		int i = 0;
-		u64 estimated_speed = 0U;
-		u64 error = 0U;
-		while (i < buffs_size) {
-			estimated_speed += buffer_speed[i];
-			error+=last_mistakes[i];
-			++i;
-		}
-		if (inserted_values != 0) {
-			estimated_speed = estimated_speed / inserted_values;
-		}
-		root_mean_square_deviation();
-		error = z_index * rms / 100;
-		if (error > estimated_speed) {
-			error = estimated_speed -1;
-		}
-		i = 0;
-		new_acked = 0U;
-		all_acked = 0U;
-		inserted_values = 0;
-		buf_pointer = 0;
-		while (i < buffs_size) {
-			buffer_speed[i] = 0U;
-			new_estimated_speed = 0U;
-			last_mistakes[i] = 0U;
-			++i;
-		}
-		i = 0;
-		while (i < ack_buff_size) {
-			acked_buffer[i] = 0U;
-			acked_time[i] = 0U;
-			++i;	
-		}
-		printk(KERN_INFO "RESTART estimated speed = %llu; step = %llu", estimated_speed, error);
-		u64 tt = (time_for_speed_calc[1] - time_for_speed_calc[0]) / HZ;
-		if (tt == 0) {
-			tt = 1;
-		}
-		printk(KERN_INFO "CURRENT RTT AND TT: %llu; %llu", ca->curr_rtt, tt);
-		estim_round_started = false;
-		tp->prior_cwnd = (u32)(estimated_speed - error)*tt/ca->curr_rtt;
+		tp->prior_cwnd = point_foreign_final(ca);
 	}
 }
 
@@ -374,17 +499,9 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 		else {
 			last_mistakes[buffs_size-1] = new_estimated_speed - new_speed;
 		}
-		u64 estimated_speed = 0;		
-		while (i < buffs_size) {
-			estimated_speed += buffer_speed[i];
-			++i;
-		}
-		if (inserted_values == 0) {
-			printk("WTF INSERTED VALUES IS 0 if it should be at least 1");
-		}
-		else {
-			estimated_speed = estimated_speed / inserted_values;
-		}
+		
+		u64 estimated_speed = speed_foreign_final();	
+	
 		new_estimated_speed = estimated_speed;
 		printk(KERN_INFO "F estimated speed = %llu", estimated_speed);
 		i = 0;
@@ -521,65 +638,18 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 	const struct tcp_sock *tp = tcp_sk(sk);
 	struct bictcp *ca = inet_csk_ca(sk);
 	printk(KERN_INFO "RECALC SSTHRESH");
-
 	ca->epoch_start = 0;	/* end of epoch */
-	int i = 0;
-
 	u32 result = 0;
-	u64 estimated_speed = 0;
-	u64 error = 0;
-	while (i < buffs_size) {
-		estimated_speed+=buffer_speed[i];
-		++i;
-	}
-	if (inserted_values != 0) {
-		estimated_speed = estimated_speed / inserted_values;
-	}
-	root_mean_square_deviation();
-	error = z_index * rms / 100;
-	if (error > estimated_speed) {
-		error = estimated_speed - 1;
-	}
-	printk(KERN_INFO "error=%llu; rms=%llu; z_index=%llu", error, rms, z_index);
 
-	printk(KERN_INFO "BUFFER SPEED: %llu %llu %llu", buffer_speed[buffs_size-3], buffer_speed[buffs_size - 2], buffer_speed[buffs_size - 1]);
-	// printk(KERN_INFO "BUFFER ESTIMATED_SPEED: %u %u %u", buffer_estimated_speed[0], buffer_estimated_speed[1], buffer_estimated_speed[2]);
-
-	printk(KERN_INFO "BUFFER ERRORS: %llu %llu %llu", last_mistakes[buffs_size - 3], last_mistakes[buffs_size - 2], last_mistakes[buffs_size - 1]);
-	new_acked = 0U;
-	all_acked = 0U;
-	inserted_values = 0;
-	buf_pointer = 0;
-	i = 0;
-	while (i < buffs_size) {
-		buffer_speed[i] = 0U;
-		new_estimated_speed = 0U;
-		last_mistakes[i] = 0U;
-		++i;	
-	}
-	i = 0;
-	while (i < ack_buff_size) {
-		acked_buffer[i] = 0U;
-		acked_time[i] = 0U;
-		++i;
-	}
-	
-	printk(KERN_INFO "RESTART estimated speed = %llu; step = %llu", estimated_speed, error);
-		// tp->prior_cwnd = estimated_speed - (u32)(error);
+	u32 vityas = point_foreign_final(ca);
+	printk(KERN_INFO "Returning max of (2, vityas=%llu), but cubic could be %u", vityas, tp->snd_cwnd * beta / BICTCP_BETA_SCALE);
+	result = max(2U, vityas);
 	/* Wmax and fast convergence */
 	if (tp->snd_cwnd < ca->last_max_cwnd && fast_convergence)
 		ca->last_max_cwnd = (tp->snd_cwnd * (BICTCP_BETA_SCALE + beta))
 			/ (2 * BICTCP_BETA_SCALE);
 	else
 		ca->last_max_cwnd = tp->snd_cwnd;
-	u64 tt = (time_for_speed_calc[1] - time_for_speed_calc[0]) / HZ;
-	if (tt == 0) {
-		tt = 1;
-	}
-	printk(KERN_INFO "CURRENT RTT AND TT: %llu; %llu", ca->curr_rtt, tt);
-	printk(KERN_INFO "Returning max of (2, vityas=%llu), but cubic could be %u", (u32)(estimated_speed - error)*tt*1000/ca->curr_rtt, tp->snd_cwnd * beta / BICTCP_BETA_SCALE);
-	estim_round_started = false;
-	result = max(2U, (u32)(estimated_speed - error)*tt*1000/ca->curr_rtt);
 	// printk(KERN_INFO "Returning max of (cubic=%u, 2, vityas=%u)", (tp->snd_cwnd * beta) / BICTCP_BETA_SCALE, estimated_speed - (u32)(error));
 	// result = max(max((tp->snd_cwnd * beta) / BICTCP_BETA_SCALE, 2U), estimated_speed - (u32)(error));
 	return result;
@@ -716,27 +786,11 @@ static int __init vityastcp_register(void)
 {
 	BUILD_BUG_ON(sizeof(struct bictcp) > ICSK_CA_PRIV_SIZE);
 	printk(KERN_INFO "Vityas test loaded");
-	int i = 0;
-	new_acked = 0U;
-	all_acked = 0U;
-	inserted_values = 0;
-	buf_pointer = 0;
-	while (i < buffs_size) {
-		buffer_speed[i] = 0U;
-		new_estimated_speed = 0U;
-		last_mistakes[i] = 0U;
-		++i;
-	}
-	i = 0;
-	while (i < ack_buff_size) {
-		acked_buffer[i] = 0U;
-		acked_time[i] = 0U;
-		++i;
-	}
-	printk(KERN_INFO "Probability = %d Packet_limit = %d", probability, packet_limit);
-	printk(KERN_INFO "init acked_buf %llu %llu", acked_buffer[0], acked_time[0]);
+	go_to_zero();
+	printk(KERN_INFO "Probability = %d Packet_limit = %d Foreign_method = %d", probability, packet_limit, foreign_method);
+	// printk(KERN_INFO "init acked_buf %llu %llu", acked_buffer[0], acked_time[0]);
 
-	if (probability == 90) { //fuck its so impossible to work with float in kernel man dumb shit
+	if (probability == 90) {
 		z_index = 165; //1.65
 	}
 	else if (probability == 77) {

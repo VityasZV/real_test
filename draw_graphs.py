@@ -33,7 +33,7 @@ class ExperimentDrawer(ExperimentHandler):
             plt.clf()
 
     def saving_results_from_dmesg(self, experiment) -> None:
-        input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg_cwnd.csv"
+        input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg.csv"
         output_filename_1 = f"{self.output_directory}/{experiment}/{experiment}_dmesg_cwnd.png"
         output_filename_2 = f"{self.output_directory}/{experiment}/{experiment}_dmesg_speed.png"
         needed_columns = [["time", "CWND"],["time", "estimated_speed"]]
