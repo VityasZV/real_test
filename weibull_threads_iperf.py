@@ -14,9 +14,10 @@ def iperf(server, port):
 
 k = 2.4
 
-x = weibull_min.rvs(k, loc=2, scale=10, size=10)
-x = [round(e) for e in x]
-x = sorted(x)
+# x = weibull_min.rvs(k, loc=2, scale=10, size=10)
+# x = [round(e) for e in x]
+# x = sorted(x)
+x = [7, 7, 8, 9, 10, 13, 14, 14, 21, 22]
 print(f"{x} HERE IS X")
 
 

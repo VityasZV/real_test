@@ -88,8 +88,6 @@ for i in 0 1 2 3
 do
 for j in 0 1 2 3 4 5 6
 do 
-for e in 1 2
-do
 	. clear_vityas.sh
 	cd vityas 
 	make
@@ -101,7 +99,7 @@ do
 
 	insmod tcp_vityas.ko probability=$_PROBABILITY packet_limit=$_PACKET_LIMIT foreign_method=$_FOREIGN
 	cd ..
-	experiment_name=test_f_$_FOREIGN\_p_$_PROBABILITY\_l_$_PACKET_LIMIT\_$e
+	experiment_name=test_f_$_FOREIGN\_p_$_PROBABILITY\_l_$_PACKET_LIMIT
 	dir_name=test_output/$experiment_name
 	mkdir $dir_name
 	start_time=$(date +"%T")
@@ -126,7 +124,6 @@ do
 	echo "Saving dmesg of vityas alg start time: $start_time"
 	journalctl -k --since $start_time > $dir_name/$experiment_name\_dmesg.txt
 	echo "VITYAS Experiment end."
-done
 done
 done
 done

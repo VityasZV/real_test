@@ -282,7 +282,20 @@ u64 speed_foreign_trend(struct bictcp *ca) {
 	if (tt == 0) {
 		tt = 1;
 	}
-	estimated_speed = (tt + 1000/ca->curr_rtt)*(speed2-speed1)/(tt)+speed1;
+
+	// y = (x-x1)/(x2-x1)*(y2-y1) + y1
+	// x = 3tt
+	// x1 = tt
+	// x2 = 2tt
+	// speed = (2tt)/(tt)*(speed2-speed1)+speed1
+	if (speed2 >= speed1) {
+		estimated_speed = (2)*(speed2-speed1)+speed1;
+	}
+	else {
+		estimated_speed = speed1 - (2)*(speed1-speed2);
+	}
+
+	printk(KERN_INFO "TREND: %llu %llu %llu", speed1, speed2, estimated_speed);
 	printk(KERN_INFO "FOREIGN CWND=?; SPEED=%llu", estimated_speed*tt*1000/ca->curr_rtt);
 	return estimated_speed;
 }
@@ -316,11 +329,19 @@ u32 point_foreign_moving_average_weighted(struct bictcp *ca) {
 
 	printk(KERN_INFO "error=%llu; rms=%llu; z_index=%llu", error, rms, z_index);
 
-	printk(KERN_INFO "BUFFER SPEED: %llu %llu %llu", buffer_speed[buffs_size-3], buffer_speed[buffs_size - 2], buffer_speed[buffs_size - 1]);
-	// printk(KERN_INFO "BUFFER ESTIMATED_SPEED: %u %u %u", buffer_estimated_speed[0], buffer_estimated_speed[1], buffer_estimated_speed[2]);
+	printk("BUFFER SPEED: %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu", 
+		   buffer_speed[buffs_size-20], buffer_speed[buffs_size-19], buffer_speed[buffs_size-18], buffer_speed[buffs_size-17], buffer_speed[buffs_size-16],
+		   buffer_speed[buffs_size-15], buffer_speed[buffs_size-14], buffer_speed[buffs_size-13], buffer_speed[buffs_size-12], buffer_speed[buffs_size-11],
+		   buffer_speed[buffs_size-10], buffer_speed[buffs_size-9], buffer_speed[buffs_size-8], buffer_speed[buffs_size-7], buffer_speed[buffs_size-6],
+		   buffer_speed[buffs_size-5], buffer_speed[buffs_size-4], buffer_speed[buffs_size-3], buffer_speed[buffs_size-2], buffer_speed[buffs_size-1]
+);
 
-	printk(KERN_INFO "BUFFER ERRORS: %llu %llu %llu", last_mistakes[buffs_size - 3], last_mistakes[buffs_size - 2], last_mistakes[buffs_size - 1]);
-	
+	printk("BUFFER ERROR: %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu", 
+		   last_mistakes[buffs_size-20], last_mistakes[buffs_size-19], last_mistakes[buffs_size-18], last_mistakes[buffs_size-17], last_mistakes[buffs_size-16],
+		   last_mistakes[buffs_size-15], last_mistakes[buffs_size-14], last_mistakes[buffs_size-13], last_mistakes[buffs_size-12], last_mistakes[buffs_size-11],
+		   last_mistakes[buffs_size-10], last_mistakes[buffs_size-9], last_mistakes[buffs_size-8], last_mistakes[buffs_size-7], last_mistakes[buffs_size-6],
+		   last_mistakes[buffs_size-5], last_mistakes[buffs_size-4], last_mistakes[buffs_size-3], last_mistakes[buffs_size-2], last_mistakes[buffs_size-1]
+);	
 	go_to_zero();
 	
 	printk(KERN_INFO "RESTART estimated speed = %llu; step = %llu", estimated_speed, error);
@@ -355,11 +376,22 @@ u32 point_foreign_moving_average(struct bictcp *ca) {
 
 	printk(KERN_INFO "error=%llu; rms=%llu; z_index=%llu", error, rms, z_index);
 
-	printk(KERN_INFO "BUFFER SPEED: %llu %llu %llu", buffer_speed[buffs_size-3], buffer_speed[buffs_size - 2], buffer_speed[buffs_size - 1]);
-	// printk(KERN_INFO "BUFFER ESTIMATED_SPEED: %u %u %u", buffer_estimated_speed[0], buffer_estimated_speed[1], buffer_estimated_speed[2]);
+	// printk(KERN_INFO "BUFFER SPEED: %llu %llu %llu", buffer_speed[buffs_size-3], buffer_speed[buffs_size - 2], buffer_speed[buffs_size - 1]);
 
-	printk(KERN_INFO "BUFFER ERRORS: %llu %llu %llu", last_mistakes[buffs_size - 3], last_mistakes[buffs_size - 2], last_mistakes[buffs_size - 1]);
-	
+	// printk(KERN_INFO "BUFFER ERROR: %llu %llu %llu", last_mistakes[buffs_size - 3], last_mistakes[buffs_size - 2], last_mistakes[buffs_size - 1]);
+	printk("BUFFER SPEED: %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu", 
+		buffer_speed[buffs_size-20], buffer_speed[buffs_size-19], buffer_speed[buffs_size-18], buffer_speed[buffs_size-17], buffer_speed[buffs_size-16],
+		buffer_speed[buffs_size-15], buffer_speed[buffs_size-14], buffer_speed[buffs_size-13], buffer_speed[buffs_size-12], buffer_speed[buffs_size-11],
+		buffer_speed[buffs_size-10], buffer_speed[buffs_size-9], buffer_speed[buffs_size-8], buffer_speed[buffs_size-7], buffer_speed[buffs_size-6],
+		buffer_speed[buffs_size-5], buffer_speed[buffs_size-4], buffer_speed[buffs_size-3], buffer_speed[buffs_size-2], buffer_speed[buffs_size-1]
+);
+
+	printk("BUFFER ERROR: %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu", 
+		   last_mistakes[buffs_size-20], last_mistakes[buffs_size-19], last_mistakes[buffs_size-18], last_mistakes[buffs_size-17], last_mistakes[buffs_size-16],
+		   last_mistakes[buffs_size-15], last_mistakes[buffs_size-14], last_mistakes[buffs_size-13], last_mistakes[buffs_size-12], last_mistakes[buffs_size-11],
+		   last_mistakes[buffs_size-10], last_mistakes[buffs_size-9], last_mistakes[buffs_size-8], last_mistakes[buffs_size-7], last_mistakes[buffs_size-6],
+		   last_mistakes[buffs_size-5], last_mistakes[buffs_size-4], last_mistakes[buffs_size-3], last_mistakes[buffs_size-2], last_mistakes[buffs_size-1]
+);	
 	go_to_zero();
 	
 	printk(KERN_INFO "RESTART estimated speed = %llu; step = %llu", estimated_speed, error);
@@ -391,11 +423,22 @@ u32 point_foreign_trend(struct bictcp *ca) {
 	}
 	printk(KERN_INFO "error=%llu; rms=%llu; z_index=%llu", error, rms, z_index);
 
-	printk(KERN_INFO "BUFFER SPEED: %llu %llu %llu", buffer_speed[buffs_size-3], buffer_speed[buffs_size - 2], buffer_speed[buffs_size - 1]);
-	// printk(KERN_INFO "BUFFER ESTIMATED_SPEED: %u %u %u", buffer_estimated_speed[0], buffer_estimated_speed[1], buffer_estimated_speed[2]);
+	// printk(KERN_INFO "BUFFER SPEED: %llu %llu %llu", buffer_speed[buffs_size-3], buffer_speed[buffs_size - 2], buffer_speed[buffs_size - 1]);
 
-	printk(KERN_INFO "BUFFER ERRORS: %llu %llu %llu", last_mistakes[buffs_size - 3], last_mistakes[buffs_size - 2], last_mistakes[buffs_size - 1]);
-	
+	// printk(KERN_INFO "BUFFER ERROR: %llu %llu %llu", last_mistakes[buffs_size - 3], last_mistakes[buffs_size - 2], last_mistakes[buffs_size - 1]);
+	printk("BUFFER SPEED: %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu", 
+		   buffer_speed[buffs_size-20], buffer_speed[buffs_size-19], buffer_speed[buffs_size-18], buffer_speed[buffs_size-17], buffer_speed[buffs_size-16],
+		   buffer_speed[buffs_size-15], buffer_speed[buffs_size-14], buffer_speed[buffs_size-13], buffer_speed[buffs_size-12], buffer_speed[buffs_size-11],
+		   buffer_speed[buffs_size-10], buffer_speed[buffs_size-9], buffer_speed[buffs_size-8], buffer_speed[buffs_size-7], buffer_speed[buffs_size-6],
+		   buffer_speed[buffs_size-5], buffer_speed[buffs_size-4], buffer_speed[buffs_size-3], buffer_speed[buffs_size-2], buffer_speed[buffs_size-1]
+);
+
+	printk("BUFFER ERROR: %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu %llu", 
+		   last_mistakes[buffs_size-20], last_mistakes[buffs_size-19], last_mistakes[buffs_size-18], last_mistakes[buffs_size-17], last_mistakes[buffs_size-16],
+		   last_mistakes[buffs_size-15], last_mistakes[buffs_size-14], last_mistakes[buffs_size-13], last_mistakes[buffs_size-12], last_mistakes[buffs_size-11],
+		   last_mistakes[buffs_size-10], last_mistakes[buffs_size-9], last_mistakes[buffs_size-8], last_mistakes[buffs_size-7], last_mistakes[buffs_size-6],
+		   last_mistakes[buffs_size-5], last_mistakes[buffs_size-4], last_mistakes[buffs_size-3], last_mistakes[buffs_size-2], last_mistakes[buffs_size-1]
+);	
 	go_to_zero();
 	
 	printk(KERN_INFO "RESTART estimated speed = %llu; step = %llu", estimated_speed, error);
@@ -569,11 +612,15 @@ static inline void bictcp_update(struct bictcp *ca, u32 cwnd, u32 acked)
 		else {
 			last_mistakes[buffs_size-1] = new_estimated_speed - new_speed;
 		}
+		if ((inserted_values == 1 && (foreign_method == 0 || foreign_method == 1)) || 
+			(inserted_values <= 2 && (foreign_method == 2))) {
+			//then error should be zero because we didn't even forecast the first value
+			last_mistakes[buffs_size-1] = 0;
+		}
 		
 		u64 estimated_speed = speed_foreign_final(ca);	
-	
+		printk(KERN_INFO "buffer_speed_last = %llu error = %llu foreign = %llu", new_speed, last_mistakes[buffs_size-1], new_estimated_speed);
 		new_estimated_speed = estimated_speed;
-		printk(KERN_INFO "F estimated speed = %llu", estimated_speed);
 		i = 0;
 		while (i < ack_buff_size) {
 			acked_buffer[i] = 0U;
@@ -708,6 +755,7 @@ static u32 bictcp_recalc_ssthresh(struct sock *sk)
 	const struct tcp_sock *tp = tcp_sk(sk);
 	struct bictcp *ca = inet_csk_ca(sk);
 	printk(KERN_INFO "RECALC SSTHRESH");
+	// printk(KERN_INFO "buffer_speed_last = %llu error = %llu foreign = %llu", new_speed, last_mistakes[buffs_size-1], new_estimated_speed);
 	ca->epoch_start = 0;	/* end of epoch */
 	u32 result = 0;
 

@@ -37,7 +37,7 @@ class ExperimentDrawer(ExperimentHandler):
         input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg.csv"
         output_filename_1 = f"{self.output_directory}/{experiment}/{experiment}_dmesg_cwnd.png"
         output_filename_2 = f"{self.output_directory}/{experiment}/{experiment}_dmesg_speed.png"
-        needed_columns = [["time", "CWND"],["time", "estimated_speed"]]
+        needed_columns = [["time", "CWND"],["time", "speed"]]
         out_files = [output_filename_1, output_filename_2]
         columns_t = [(1), (2)]
         for columns, out_file, title, c_t in zip(needed_columns, out_files, [f"{experiment}_dmesg_cwnd", f"{experiment}_dmesg_speed"], columns_t):
@@ -49,15 +49,17 @@ class ExperimentDrawer(ExperimentHandler):
             plt.title(title)
             plt.savefig(out_file, bbox_inches='tight')
             plt.clf()
-            # plt.close()
+            plt.close()
+            break  #so we get only cwnd full
+
 
     def foreign_results_from_dmesg(self, experiment)->None:
-        input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg_foreign.csv"
+        input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg.csv"
         output_filename = f"{self.output_directory}/{experiment}/{experiment}_dmesg_foreign.png"
-        needed_columns = [["time", "CWND", "SPEED_CWND"]]
+        needed_columns = [["time", "CWND", "SPEED", "FOREIGN"]]
         out_files = [output_filename]
-        columns_t = [(1),(2)]
-        labels = ["CWND", "SPEED_CWND"]
+        columns_t = [(1),(2), (3)]
+        labels = ["CWND", "SPEED", "FOREIGN"]
         for columns, out_file, title in zip(needed_columns, out_files, [f"{experiment}_dmesg_foreign"]):
             f, ax = plt.subplots()
             for c_t, l in zip(columns_t, labels):
@@ -67,6 +69,7 @@ class ExperimentDrawer(ExperimentHandler):
             plt.title(title)
             plt.savefig(out_file, bbox_inches='tight')
             plt.clf()
+            plt.close()
 
 
 if __name__ == '__main__':      
