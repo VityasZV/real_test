@@ -44,7 +44,7 @@ class ExperimentHandler:
 
     def save_pre_final_result(self) -> None:
         try: 
-            os.mkdir(os.getcwd()+f"/{input_directory}/result")
+            os.mkdir(os.getcwd()+f"/{self.input_directory}/result")
         except:
             pass
         output_filename = f"{self.input_directory}/result/preparing.csv"
