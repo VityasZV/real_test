@@ -76,22 +76,20 @@ ip netns exec ${array_host[1]} ifconfig
 echo "IFCONFIG CHECKED Successfully"
 
 
-foreign_method_array=(0 1 2)
-packet_limit_array=(30 50 80 100)
-probability_array=(10 20 30 45 60 70 90)
+step_array=(0 1)
+foreign_method_array=(0 1 2 3)
+packet_limit_array=(20 30 40 50)
+probability_array=(45 60 70 90)
 #experiment part
 rm -rf test_output
 mkdir test_output
-for k in 0 1 2
+for s in 0 1
 do
-for i in 0 1 2 3
+for k in 0 1 2 3
 do
-for j in 0 1 2 3 4 5 6
-# for k in 0
-# do
-# for i in 0
-# do
-# for j in 0
+for i in 2
+do
+for j in 2 3
 do 
 	. clear_vityas.sh
 	cd vityas 
@@ -101,21 +99,20 @@ do
 	export _PACKET_LIMIT=${packet_limit_array[$i]}
 	export _PROBABILITY=${probability_array[$j]}
 	export _FOREIGN=${foreign_method_array[$k]}
+	export _STEP=${step_array[$s]}
 
-	insmod tcp_vityas.ko probability=$_PROBABILITY packet_limit=$_PACKET_LIMIT foreign_method=$_FOREIGN
+	insmod tcp_vityas.ko probability=$_PROBABILITY packet_limit=$_PACKET_LIMIT foreign_method=$_FOREIGN step=$_STEP
 	cd ..
-	experiment_name=test_f_$_FOREIGN\_p_$_PROBABILITY\_l_$_PACKET_LIMIT
+	experiment_name=test_f_$_FOREIGN\_s_$_STEP\_p_$_PROBABILITY\_l_$_PACKET_LIMIT
 	dir_name=test_output/$experiment_name
 	mkdir $dir_name
 	start_time=$(date +"%T")
 
-
-
-	echo "VITYAS Experiment start (P=$_PROBABILITY; L=$_PACKET_LIMIT; F=$_FOREIGN):"
+	echo "VITYAS Experiment start (P=$_PROBABILITY; L=$_PACKET_LIMIT; F=$_FOREIGN; S=$_STEP):"
 
 	ip netns exec ${array_host[0]} iperf3 -s -p 5201 -f K  &
 	export iperf_serv=$!
-	ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 60 -C vityas > $dir_name/$experiment_name\_iperf.txt &
+	ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 40 -C vityas > $dir_name/$experiment_name\_iperf.txt &
 	export iperf_client=$!
 	EXPERIMENT="vityas_$i" python3 weibull_threads_iperf.py &
 	export weibull=$!
@@ -129,6 +126,7 @@ do
 	echo "Saving dmesg of vityas alg start time: $start_time"
 	journalctl -k --since $start_time > $dir_name/$experiment_name\_dmesg.txt
 	echo "VITYAS Experiment end."
+done
 done
 done
 done
@@ -149,7 +147,7 @@ ip netns exec ${array_host[0]} iperf3 -s -p 5201 -f K  &
 export iperf_serv=$!
 EXPERIMENT="$t" python3 weibull_threads_iperf.py &
 export weibull=$!
-ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 60 -C $t > test_output/$t/$t\_iperf.txt &
+ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 40 -C $t > test_output/$t/$t\_iperf.txt &
 export iperf_client=$!
 
 echo "waiting 60 seconds for iperf client to generate some traffic"

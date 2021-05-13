@@ -65,11 +65,11 @@ class ExperimentHandler:
             reader = csv.DictReader(csv_file)
             for line in reader:
                 if line["experiment"] == "cubic_t":
-                    cubic = line["average_bitrate"]
+                    cubic = int(line["average_bitrate"])
                 elif line["experiment"] == "bbr_t":
-                    bbr = line["average_bitrate"]
+                    bbr = int(line["average_bitrate"])
                 else:
-                    exp_result[line["experiment"]] = line["average_bitrate"]
+                    exp_result[line["experiment"]] = int(line["average_bitrate"])
         print(exp_result)
         with open(os.getcwd()+ f"/{output_filename}", mode='w') as csv_file:
             field_names = ["experiment", "res", "cubic", "bbr", "better_than_cubic", "better_than_bbr"]
@@ -116,7 +116,7 @@ class ExperimentHandler:
         speed_matches = re.findall(".*\d\d:\d\d:\d\d.*buffer_speed_last = \d+.*foreign = \d+", filetext)
         speed_matches = [{"time": re.findall("\d\d:\d\d:\d\d", el)[0], "cwnd": "?", "speed": re.findall("\d+", re.findall("buffer_speed_last = \d+", el)[0])[0], "foreign": re.findall("\d+", re.findall("foreign = \d+", el)[0])[0]} for el in speed_matches]
         all_matches = matches + speed_matches
-        all_matches = sorted(all_matches, key=lambda tcs: tcs['time'])
+        all_matches = sorted(all_matches, key=lambda tcs: tcs['time']) #sort by id of log, not by time
 
         # with open(os.getcwd()+ f"/{output_filename_filtr_unused}", mode='w') as csv_file:
         #     field_names = ["time", "CWND", "estimated_speed"]
