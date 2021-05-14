@@ -53,14 +53,14 @@ class ExperimentDrawer(ExperimentHandler):
             break  #so we get only cwnd full
 
 
-    def foreign_results_from_dmesg(self, experiment)->None:
+    def forecast_results_from_dmesg(self, experiment)->None:
         input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg.csv"
-        output_filename = f"{self.output_directory}/{experiment}/{experiment}_dmesg_foreign.png"
-        needed_columns = [["time", "CWND", "SPEED", "FOREIGN"]]
+        output_filename = f"{self.output_directory}/{experiment}/{experiment}_dmesg_forecast.png"
+        needed_columns = [["time", "CWND", "SPEED", "FORECAST"]]
         out_files = [output_filename]
         columns_t = [(1),(2), (3)]
-        labels = ["CWND", "SPEED", "FOREIGN"]
-        for columns, out_file, title in zip(needed_columns, out_files, [f"{experiment}_dmesg_foreign"]):
+        labels = ["CWND", "SPEED", "FORECAST"]
+        for columns, out_file, title in zip(needed_columns, out_files, [f"{experiment}_dmesg_forecast"]):
             f, ax = plt.subplots()
             for c_t, l in zip(columns_t, labels):
                 data = genfromtxt(input_filename, delimiter=',', skip_header=1, usecols=c_t)
@@ -78,5 +78,5 @@ if __name__ == '__main__':
         os.mkdir(os.getcwd()+f"/{experiment_drawer.output_directory}/{experiment}")
         experiment_drawer.saving_results_from_iperf(experiment)
         experiment_drawer.saving_results_from_dmesg(experiment)
-        experiment_drawer.foreign_results_from_dmesg(experiment)
+        experiment_drawer.forecast_results_from_dmesg(experiment)
 

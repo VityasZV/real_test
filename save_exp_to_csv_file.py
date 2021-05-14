@@ -112,9 +112,9 @@ class ExperimentHandler:
         print(f"SIZE OF FILETEXT dmesg {len(filetext)}")
         textfile.close()
         matches = re.findall(".*\d\d:\d\d:\d\d.*UPDATE cwnd = \d*", filetext)
-        matches = [{"time": re.findall("\d\d:\d\d:\d\d", el)[0], "cwnd": re.findall("\d+", re.findall("= \d+", el)[0])[0], "speed": "?", "foreign": "?"} for el in matches]
-        speed_matches = re.findall(".*\d\d:\d\d:\d\d.*buffer_speed_last = \d+.*foreign = \d+", filetext)
-        speed_matches = [{"time": re.findall("\d\d:\d\d:\d\d", el)[0], "cwnd": "?", "speed": re.findall("\d+", re.findall("buffer_speed_last = \d+", el)[0])[0], "foreign": re.findall("\d+", re.findall("foreign = \d+", el)[0])[0]} for el in speed_matches]
+        matches = [{"time": re.findall("\d\d:\d\d:\d\d", el)[0], "cwnd": re.findall("\d+", re.findall("= \d+", el)[0])[0], "speed": "?", "forecast": "?"} for el in matches]
+        speed_matches = re.findall(".*\d\d:\d\d:\d\d.*buffer_speed_last = \d+.*forecast = \d+", filetext)
+        speed_matches = [{"time": re.findall("\d\d:\d\d:\d\d", el)[0], "cwnd": "?", "speed": re.findall("\d+", re.findall("buffer_speed_last = \d+", el)[0])[0], "forecast": re.findall("\d+", re.findall("forecast = \d+", el)[0])[0]} for el in speed_matches]
         all_matches = matches + speed_matches
         all_matches = sorted(all_matches, key=lambda tcs: tcs['time']) #sort by id of log, not by time
 
@@ -159,28 +159,28 @@ class ExperimentHandler:
         #             last_time = el['time']
 
         with open(os.getcwd()+ f"/{output_filename}", mode='w') as csv_file:
-            field_names = ["time", "CWND", "speed", "foreign"]
+            field_names = ["time", "CWND", "speed", "forecast"]
             writer = csv.DictWriter(csv_file, fieldnames=field_names)
             writer.writeheader()
             last_speed = 0
-            last_foreign = 0
+            last_forecast = 0
             last_cwnd = 0
             for el in all_matches:
                 last_speed = el['speed'] if el['speed'] != "?" else last_speed
-                last_foreign = el['foreign'] if el['foreign'] != "?" else last_foreign
+                last_forecast = el['forecast'] if el['forecast'] != "?" else last_forecast
                 last_cwnd = el['cwnd'] if el['cwnd'] != "?" else last_cwnd
                 last_time = el['time']
-                writer.writerow({'time': last_time, 'CWND': last_cwnd, 'speed': last_speed, 'foreign': last_foreign})
+                writer.writerow({'time': last_time, 'CWND': last_cwnd, 'speed': last_speed, 'forecast': last_forecast})
 
-    # def foreign_results_from_dmesg(self, experiment)->None:
+    # def forecast_results_from_dmesg(self, experiment)->None:
     #     input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg.txt"
-    #     output_filename = f"{self.output_directory}/{experiment}/{experiment}_dmesg_foreign.csv"
+    #     output_filename = f"{self.output_directory}/{experiment}/{experiment}_dmesg_forecast.csv"
 
     #     textfile = open(os.getcwd()+f"/{input_filename}", 'r')
     #     filetext = textfile.read()
     #     print(f"SIZE OF FILETEXT dmesg {len(filetext)}")
     #     textfile.close()
-    #     speed_matches = re.findall(".*\d\d:\d\d:\d\d.*FOREIGN CWND=[\d,?]+.*SPEED=\d*", filetext)
+    #     speed_matches = re.findall(".*\d\d:\d\d:\d\d.*forecast CWND=[\d,?]+.*SPEED=\d*", filetext)
     #     speed_matches = [{"time": re.findall("\d\d:\d\d:\d\d", el)[0], "cwnd": "?", "speed": re.findall("\d+", re.findall("SPEED=\d+", el)[0])[0]} for el in speed_matches]
     #     cwnd_matches = re.findall(".*\d\d:\d\d:\d\d.*UPDATE cwnd = \d*", filetext)
     #     cwnd_matches = [{"time": re.findall("\d\d:\d\d:\d\d", el)[0], "cwnd": re.findall("\d+", re.findall("= \d+", el)[0])[0], "speed": "?"} for el in cwnd_matches]
@@ -209,6 +209,6 @@ if __name__ == '__main__':
         experiment_handler.saving_results_from_iperf(experiment)
         experiment_handler.prepare_pre_final_result(experiment)
         experiment_handler.saving_results_from_dmesg(experiment)
-        # experiment_handler.foreign_results_from_dmesg(experiment)
+        # experiment_handler.forecast_results_from_dmesg(experiment)
     experiment_handler.save_pre_final_result()
     experiment_handler.save_final_result()
