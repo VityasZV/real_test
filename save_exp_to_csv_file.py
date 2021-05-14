@@ -23,9 +23,6 @@ class ExperimentHandler:
                 experiment_name[0] != "result" and experiment_name!="csv_files" and 
                 experiment_name[0] != "graphs"):
                 experiments.append(experiment_name[0])
-        print(dirlist)
-        print(experiments)
-        print("T")
         self.experiments = experiments
         print("create output dir")
         try: 
@@ -60,26 +57,27 @@ class ExperimentHandler:
         input_filename = f"{self.input_directory}/result/preparing.csv"
         output_filename = f"{self.input_directory}/result/final.csv"
         exp_result = {}
-        cubic = 0.0
-        bbr = 0.0
+        tr = ["cubic", "bbr", "bic", "htcp", "highspeed", "illinoise"]
+        traditional_exp = {}.fromkeys(tr, 0.0)
+        trt = [e + "_t" for e in tr]
+
         with open(os.getcwd()+ f"/{input_filename}", mode='r') as csv_file:
             reader = csv.DictReader(csv_file)
             for line in reader:
-                if line["experiment"] == "cubic_t":
-                    cubic = int(line["average_bitrate"])
-                elif line["experiment"] == "bbr_t":
-                    bbr = int(line["average_bitrate"])
+                if line["experiment"] in trt:
+                    traditional_exp[line["experiment"][0:-2]] = int(line["average_bitrate"])
                 else:
-                    exp_result[line["experiment"]] = int(line["average_bitrate"])
-        print(exp_result)
+                    exp_result[line["experiment"]] = int(line["average_bitrate"])  
+        better_than = {}.fromkeys(["better_than_" + e for e in tr],"")
+
         with open(os.getcwd()+ f"/{output_filename}", mode='w') as csv_file:
-            field_names = ["experiment", "res", "cubic", "bbr", "better_than_cubic", "better_than_bbr"]
+            field_names = ["experiment", "res", *tr,  *better_than]
             writer = csv.DictWriter(csv_file, fieldnames=field_names)
             writer.writeheader()
             for e, av_speed in exp_result.items():
-                writer.writerow({'experiment': e, 'res': av_speed, "cubic": cubic, "bbr": bbr,
-                                 'better_than_cubic': 'yes' if av_speed >= cubic else 'no',
-                                 'better_than_bbr'  : 'yes' if av_speed >= bbr   else 'no'})
+                for b,t in zip(better_than.keys(), traditional_exp.keys()):
+                    better_than[b] = 'yes' if av_speed >= traditional_exp[t] else 'no'
+                writer.writerow({'experiment': e, 'res': av_speed, **traditional_exp, **better_than})
 
 
     def saving_results_from_iperf(self, experiment) -> None:
@@ -110,7 +108,6 @@ class ExperimentHandler:
 
         textfile = open(os.getcwd()+f"/{input_filename}", 'r')
         filetext = textfile.read()
-        print(f"SIZE OF FILETEXT dmesg {len(filetext)}")
         textfile.close()
         matches = re.findall(".*\d\d:\d\d:\d\d.*UPDATE cwnd = \d*", filetext)
         matches = [{"time": re.findall("\d\d:\d\d:\d\d", el)[0], "cwnd": re.findall("\d+", re.findall("= \d+", el)[0])[0], "speed": "?", "forecast": "?"} for el in matches]

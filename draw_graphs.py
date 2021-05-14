@@ -40,9 +40,9 @@ class ExperimentDrawer(ExperimentHandler):
         needed_columns = [["time", "CWND"],["time", "speed"]]
         out_files = [output_filename_1, output_filename_2]
         columns_t = [(1), (2)]
+        print("drawing results from dmesg...")
         for columns, out_file, title, c_t in zip(needed_columns, out_files, [f"{experiment}_dmesg_cwnd", f"{experiment}_dmesg_speed"], columns_t):
             data = genfromtxt(input_filename, delimiter=',', skip_header=1, usecols=c_t)
-            print(data)
             plt.plot(data)
             plt.xlabel(columns[0])
             plt.ylabel(columns[1])
@@ -51,6 +51,7 @@ class ExperimentDrawer(ExperimentHandler):
             plt.clf()
             plt.close()
             break  #so we get only cwnd full
+        print("finished!")
 
 
     def forecast_results_from_dmesg(self, experiment)->None:
@@ -79,4 +80,5 @@ if __name__ == '__main__':
         experiment_drawer.saving_results_from_iperf(experiment)
         experiment_drawer.saving_results_from_dmesg(experiment)
         experiment_drawer.forecast_results_from_dmesg(experiment)
+    print("Drawing finished!")
 

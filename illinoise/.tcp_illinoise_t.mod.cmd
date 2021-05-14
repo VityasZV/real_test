@@ -1,0 +1,1 @@
+cmd_/home/parallels/Documents/real_test/illinoise/tcp_illinoise_t.mod := { echo  /home/parallels/Documents/real_test/illinoise/tcp_illinoise_t.o;  echo; } > /home/parallels/Documents/real_test/illinoise/tcp_illinoise_t.mod

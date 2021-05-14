@@ -1,0 +1,2 @@
+base_experiment,better_than_cubic_0.9,better_than_cubic_0.8,better_than_cubic_0.7,better_than_bbr_0.9,better_than_bbr_0.8,better_than_bbr_0.7,better_than_bic_0.9,better_than_bic_0.8,better_than_bic_0.7,better_than_htcp_0.9,better_than_htcp_0.8,better_than_htcp_0.7,better_than_highspeed_0.9,better_than_highspeed_0.8,better_than_highspeed_0.7,better_than_illinoise_0.9,better_than_illinoise_0.8,better_than_illinoise_0.7
+test_f_0_p_80_l_25,yes,yes,yes,yes,yes,yes,no,no,no,yes,yes,yes,yes,yes,yes,yes,yes,yes

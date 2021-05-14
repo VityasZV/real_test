@@ -87,11 +87,12 @@ rm -rf test_output
 mkdir test_output
 for s in 0
 do
-for k in 0 1 2 3
+for k in 0
 do
 for i in 0
 do
 for j in 2
+do
 for e in {1..1}
 do 
 	. clear_vityas.sh
@@ -111,7 +112,7 @@ do
 	mkdir $dir_name
 	start_time=$(date +"%T")
 
-	echo "VITYAS Experiment start (P=$_PROBABILITY; L=$_PACKET_LIMIT; F=$_FORECAST; S=$_STEP):"
+	echo "VITYAS Experiment start (P=$_PROBABILITY; L=$_PACKET_LIMIT; F=$_FORECAST; E=$e):"
 
 	ip netns exec ${array_host[0]} iperf3 -s -p 5201 -f K  &
 	export iperf_serv=$!
@@ -119,7 +120,7 @@ do
 	export iperf_client=$!
 	EXPERIMENT="vityas_$i" python3 weibull_threads_iperf.py &
 	export weibull=$!
-	echo "waiting 60 seconds for iperf client to generate some traffic"
+	echo "waiting 40 seconds for iperf client to generate some traffic"
 	wait $iperf_client
 	echo "waiting weibull_threads"
 	wait $weibull
@@ -133,16 +134,23 @@ done
 done
 done
 done
+done
 . clear_vityas.sh
 
-traditional=("cubic_t" "bbr_t")
+traditional=("cubic_t" "bbr_t" "bic_t" "htcp_t" "highspeed_t" "illinoise_t")
+directories_t=("cubic" "bbr" "bic" "htcp" "highspeed" "illinoise")
 
-for k in 0 1
+for k in 0 1 2 3 4 5
 do
 t=${traditional[$k]}
 echo "$t Experiment start:"
 
-. set_$t.sh
+# set algo
+cd ${directories_t[$k]}
+make
+sudo rmmod tcp_$t
+sudo insmod tcp_$t.ko
+cd ..
 
 mkdir test_output/$t
 start_time=$(date +"%T")
@@ -153,7 +161,7 @@ export weibull=$!
 ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 40 -C $t > test_output/$t/$t\_iperf.txt &
 export iperf_client=$!
 
-echo "waiting 60 seconds for iperf client to generate some traffic"
+echo "waiting 40 seconds for iperf client to generate some traffic"
 wait $iperf_client
 echo "wait weibull"
 wait $weibull
@@ -163,11 +171,12 @@ kill $iperf_serv
 echo "saving dmesg output of cubic"
 journalctl -k --since $start_time > test_output/$t/$t\_dmesg.txt
 echo "$t Experiment end."
-. clear_$t.sh
+sudo rmmod tcp_$t
 done
 
 
 echo "finito la comedia, now Running Python script for saving csv_files of iperf and dmesg of each experiment..."
 
 python3 save_exp_to_csv_file.py
+python3 check_hypothesis.py
 python3 draw_graphs.py

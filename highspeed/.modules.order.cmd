@@ -1,0 +1,1 @@
+cmd_/home/parallels/Documents/real_test/highspeed/modules.order := {   echo /home/parallels/Documents/real_test/highspeed/tcp_highspeed_t.ko; :; } | awk '!x[$$0]++' - > /home/parallels/Documents/real_test/highspeed/modules.order

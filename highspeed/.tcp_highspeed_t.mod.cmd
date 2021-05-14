@@ -1,0 +1,1 @@
+cmd_/home/parallels/Documents/real_test/highspeed/tcp_highspeed_t.mod := { echo  /home/parallels/Documents/real_test/highspeed/tcp_highspeed_t.o;  echo; } > /home/parallels/Documents/real_test/highspeed/tcp_highspeed_t.mod
