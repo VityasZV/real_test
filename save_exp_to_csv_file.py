@@ -20,7 +20,8 @@ class ExperimentHandler:
         for _dir in dirlist:
             experiment_name = re.findall("[a-zA-Z0-9_]*$", _dir)
             if (experiment_name[0] != "weibull_threads" and 
-                experiment_name[0] != "result"):
+                experiment_name[0] != "result" and experiment_name!="csv_files" and 
+                experiment_name[0] != "graphs"):
                 experiments.append(experiment_name[0])
         print(dirlist)
         print(experiments)

@@ -78,8 +78,10 @@ echo "IFCONFIG CHECKED Successfully"
 
 step_array=(0 1)
 forecast_method_array=(0 1 2 3)
-packet_limit_array=(10 15 20 25 30 40 50)
+packet_limit_array=(25)
+# probability_array=(40 60 70 80 90)
 probability_array=(60 70 80 90)
+experiments_array=(125)
 #experiment part
 rm -rf test_output
 mkdir test_output
@@ -87,9 +89,10 @@ for s in 0
 do
 for k in 0 1 2 3
 do
-for i in 3 4 5 6
+for i in 0
 do
 for j in 2
+for e in {1..1}
 do 
 	. clear_vityas.sh
 	cd vityas 
@@ -103,7 +106,7 @@ do
 
 	insmod tcp_vityas.ko probability=$_PROBABILITY packet_limit=$_PACKET_LIMIT forecast_method=$_FORECAST step=$_STEP
 	cd ..
-	experiment_name=test_f_$_FORECAST\_s_$_STEP\_p_$_PROBABILITY\_l_$_PACKET_LIMIT
+	experiment_name=test_f_$_FORECAST\_p_$_PROBABILITY\_l_$_PACKET_LIMIT\_e_$e
 	dir_name=test_output/$experiment_name
 	mkdir $dir_name
 	start_time=$(date +"%T")
