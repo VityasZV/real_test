@@ -79,7 +79,6 @@ echo "IFCONFIG CHECKED Successfully"
 step_array=(0 1)
 forecast_method_array=(0 1 2 3)
 packet_limit_array=(25)
-# probability_array=(40 60 70 80 90)
 probability_array=(60 70 80 90)
 experiments_array=(125)
 #experiment part
@@ -87,14 +86,12 @@ rm -rf test_output
 mkdir test_output
 for s in 0
 do
-for k in 0
+for k in 0 1 2 3
 do
 for i in 0
 do
-for j in 2
+for j in 0 1 2 3
 do
-for e in {1..1}
-do 
 	. clear_vityas.sh
 	cd vityas 
 	make
@@ -104,9 +101,10 @@ do
 	export _PROBABILITY=${probability_array[$j]}
 	export _FORECAST=${forecast_method_array[$k]}
 	export _STEP=${step_array[$s]}
-
 	insmod tcp_vityas.ko probability=$_PROBABILITY packet_limit=$_PACKET_LIMIT forecast_method=$_FORECAST step=$_STEP
 	cd ..
+for e in {1..127}
+do 
 	experiment_name=test_f_$_FORECAST\_p_$_PROBABILITY\_l_$_PACKET_LIMIT\_e_$e
 	dir_name=test_output/$experiment_name
 	mkdir $dir_name
@@ -131,6 +129,7 @@ do
 	journalctl -k --since $start_time > $dir_name/$experiment_name\_dmesg.txt
 	echo "VITYAS Experiment end."
 done
+
 done
 done
 done

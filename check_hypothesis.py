@@ -71,3 +71,4 @@ if __name__ == '__main__':
     print("SUPER FINAL STARTS NOW !!!")   
     experiment_checker = ExperimentChecker(input_directory="test_output", output_directory="test_output/csv_files")
     experiment_checker.save_super_final_result()
+    print("SUPER FINAL FINISHED")
