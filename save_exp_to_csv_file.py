@@ -31,14 +31,16 @@ class ExperimentHandler:
             print("dir already created")
 
     def prepare_pre_final_result(self, experiment) -> None:
-      
-        input_filename = f"{self.input_directory}/{experiment}/{experiment}_iperf.txt"
-        textfile = open(os.getcwd()+f"/{input_filename}", 'r')
-        filetext = textfile.read()
-        textfile.close()
-        el = re.findall("Interval\s*Transfer\s*Bitrate\s*Retr\s*\n.*[0-9,\.]+\s*KBytes/sec", filetext)[0]
-        average_bitrate = re.findall("[0-9,\.]+", re.findall("[0-9,\.]+ KBytes/sec", el)[0])[0]
-        self.e_to_avb[experiment] = average_bitrate
+        try: 
+            input_filename = f"{self.input_directory}/{experiment}/{experiment}_iperf.txt"
+            textfile = open(os.getcwd()+f"/{input_filename}", 'r')
+            filetext = textfile.read()
+            textfile.close()
+            el = re.findall("Interval\s*Transfer\s*Bitrate\s*Retr\s*\n.*[0-9,\.]+\s*KBytes/sec", filetext)[0]
+            average_bitrate = re.findall("[0-9,\.]+", re.findall("[0-9,\.]+ KBytes/sec", el)[0])[0]
+            self.e_to_avb[experiment] = average_bitrate
+        except Exception:
+            print(experiment)
 
     def save_pre_final_result(self) -> None:
         try: 

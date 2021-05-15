@@ -75,6 +75,43 @@ echo "client ifconfig: "
 ip netns exec ${array_host[1]} ifconfig
 echo "IFCONFIG CHECKED Successfully"
 
+traditional=("cubic_t" "bbr_t" "bic_t" "htcp_t" "highspeed_t" "illinoise_t")
+directories_t=("cubic" "bbr" "bic" "htcp" "highspeed" "illinoise")
+
+for k in 0 1 2 3 4 5
+do
+t=${traditional[$k]}
+echo "$t Experiment start:"
+
+# set algo
+cd ${directories_t[$k]}
+make
+sudo rmmod tcp_$t
+sudo insmod tcp_$t.ko
+cd ..
+
+mkdir test_output/$t
+start_time=$(date +"%T")
+ip netns exec ${array_host[0]} iperf3 -s -p 5201 -f K  &
+export iperf_serv=$!
+EXPERIMENT="$t" python3 weibull_threads_iperf.py &
+export weibull=$!
+ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 40 -C $t > test_output/$t/$t\_iperf.txt &
+export iperf_client=$!
+
+echo "waiting 40 seconds for iperf client to generate some traffic"
+wait $iperf_client
+echo "wait weibull"
+wait $weibull
+echo "killing iperf server"
+kill $iperf_serv
+
+echo "saving dmesg output of $t"
+journalctl -k --since $start_time > test_output/$t/$t\_dmesg.txt
+echo "$t Experiment end."
+sudo rmmod tcp_$t
+done
+
 
 step_array=(0 1)
 forecast_method_array=(0 1 2 3)
@@ -90,7 +127,7 @@ for k in 0 1 2 3
 do
 for i in 0
 do
-for j in 0 1 2 3
+for j in 2 3
 do
 	. clear_vityas.sh
 	cd vityas 
@@ -135,44 +172,6 @@ done
 done
 done
 . clear_vityas.sh
-
-traditional=("cubic_t" "bbr_t" "bic_t" "htcp_t" "highspeed_t" "illinoise_t")
-directories_t=("cubic" "bbr" "bic" "htcp" "highspeed" "illinoise")
-
-for k in 0 1 2 3 4 5
-do
-t=${traditional[$k]}
-echo "$t Experiment start:"
-
-# set algo
-cd ${directories_t[$k]}
-make
-sudo rmmod tcp_$t
-sudo insmod tcp_$t.ko
-cd ..
-
-mkdir test_output/$t
-start_time=$(date +"%T")
-ip netns exec ${array_host[0]} iperf3 -s -p 5201 -f K  &
-export iperf_serv=$!
-EXPERIMENT="$t" python3 weibull_threads_iperf.py &
-export weibull=$!
-ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 40 -C $t > test_output/$t/$t\_iperf.txt &
-export iperf_client=$!
-
-echo "waiting 40 seconds for iperf client to generate some traffic"
-wait $iperf_client
-echo "wait weibull"
-wait $weibull
-echo "killing iperf server"
-kill $iperf_serv
-
-echo "saving dmesg output of cubic"
-journalctl -k --since $start_time > test_output/$t/$t\_dmesg.txt
-echo "$t Experiment end."
-sudo rmmod tcp_$t
-done
-
 
 echo "finito la comedia, now Running Python script for saving csv_files of iperf and dmesg of each experiment..."
 
