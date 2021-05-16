@@ -75,6 +75,10 @@ echo "client ifconfig: "
 ip netns exec ${array_host[1]} ifconfig
 echo "IFCONFIG CHECKED Successfully"
 
+
+#experiment part
+rm -rf test_output
+mkdir test_output
 traditional=("cubic_t" "bbr_t" "bic_t" "htcp_t" "highspeed_t" "illinoise_t")
 directories_t=("cubic" "bbr" "bic" "htcp" "highspeed" "illinoise")
 
@@ -118,9 +122,6 @@ forecast_method_array=(0 1 2 3)
 packet_limit_array=(25)
 probability_array=(60 70 80 90)
 experiments_array=(125)
-#experiment part
-rm -rf test_output
-mkdir test_output
 for s in 0
 do
 for k in 0 1 2 3

@@ -5,7 +5,9 @@ import os
 import csv
 import glob
 from numpy import genfromtxt
+from collections import defaultdict
 import matplotlib.pyplot as plt
+import matplotlib.pylab as r_plt
 
 from save_exp_to_csv_file import ExperimentHandler
 
@@ -72,6 +74,54 @@ class ExperimentDrawer(ExperimentHandler):
             plt.clf()
             plt.close()
 
+    def draw_final_result(self)->None:
+        input_filename = "test_output/result/preparing.csv"
+        exp_result = {}
+        tr = ["cubic", "bbr", "bic", "htcp", "highspeed", "illinoise"]
+        traditional_exp = {}.fromkeys(tr, 0.0)
+        trt = [e + "_t" for e in tr]
+        with open(os.getcwd()+ f"/{input_filename}", mode='r') as csv_file:
+            reader = csv.DictReader(csv_file)
+            for line in reader:
+                if line["experiment"] in trt:
+                    traditional_exp[line["experiment"][0:-2]] = int(line["average_bitrate"])
+                else:
+                    exp_result[line["experiment"]] = int(line["average_bitrate"])
+        exp_series = {}
+        tr_exp_series = {}
+        for tr_name, tr_res in traditional_exp.items():
+            tr_exp_series[tr_name] = {}
+            for i in range(1, 128):
+                tr_exp_series[tr_name][i] = tr_res
+        print(len(exp_result.keys()))
+        for e_name, e_res in exp_result.items():
+            name = e_name[0:e_name.find("_e_")]
+            number = int(re.findall("\d+", re.findall("_e_\d+", e_name)[0])[0])
+            if name in exp_series.keys():
+                exp_series[name][number]= int(e_res)
+            else:
+                exp_series[name] = {number: int(e_res)}
+        print(exp_series.keys())
+        for e_s_name, e_s_stuff in exp_series.items():
+            f, ax = plt.subplots()
+            print(f"drawing series of {e_s_name}")
+            lists = sorted(e_s_stuff.items())
+            x, y = zip(*lists)
+            ax.plot(x,y,label=e_s_name)
+            ax.legend()
+            for t_name, t_stuff in tr_exp_series.items():
+                lists = sorted(t_stuff.items())
+                x, y = zip(*lists)
+                ax.plot(x,y,label=t_name)
+                ax.legend()
+            plt.xlabel("exp_number")
+            plt.ylabel("average_speed")
+            plt.savefig(f"test_output/result/{e_s_name}.png", bbox_inches='tight')
+            plt.clf()
+            plt.close()
+
+            
+
 
 if __name__ == '__main__':      
     experiment_drawer = ExperimentDrawer(input_directory="test_output/csv_files", output_directory="test_output/graphs")
@@ -80,5 +130,6 @@ if __name__ == '__main__':
         experiment_drawer.saving_results_from_iperf(experiment)
         experiment_drawer.saving_results_from_dmesg(experiment)
         experiment_drawer.forecast_results_from_dmesg(experiment)
+    experiment_drawer.draw_final_result()
     print("Drawing finished!")
 
