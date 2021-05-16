@@ -78,38 +78,39 @@ class ExperimentDrawer(ExperimentHandler):
         input_filename = "test_output/result/preparing.csv"
         exp_result = {}
         tr = ["cubic", "bbr", "bic", "htcp", "highspeed", "illinoise"]
-        traditional_exp = {}.fromkeys(tr, 0.0)
         trt = [e + "_t" for e in tr]
+
+        traditional_exp = {k : {} for k in tr}
+
+        # print(f"{traditional_exp}              {exp_result}")
         with open(os.getcwd()+ f"/{input_filename}", mode='r') as csv_file:
             reader = csv.DictReader(csv_file)
             for line in reader:
-                if line["experiment"] in trt:
-                    traditional_exp[line["experiment"][0:-2]] = int(line["average_bitrate"])
-                else:
-                    exp_result[line["experiment"]] = int(line["average_bitrate"])
-        exp_series = {}
-        tr_exp_series = {}
-        for tr_name, tr_res in traditional_exp.items():
-            tr_exp_series[tr_name] = {}
-            for i in range(1, 128):
-                tr_exp_series[tr_name][i] = tr_res
-        print(len(exp_result.keys()))
-        for e_name, e_res in exp_result.items():
-            name = e_name[0:e_name.find("_e_")]
-            number = int(re.findall("\d+", re.findall("_e_\d+", e_name)[0])[0])
-            if name in exp_series.keys():
-                exp_series[name][number]= int(e_res)
-            else:
-                exp_series[name] = {number: int(e_res)}
-        print(exp_series.keys())
-        for e_s_name, e_s_stuff in exp_series.items():
+                exp_base = line["experiment"][0:line["experiment"].find("_e_")]
+                exp_number = int(re.findall("\d+", re.findall("_e_\d+", line["experiment"])[0])[0])
+                # print(f"LOG {exp_base} {exp_number} of {line}")
+                is_traditional = False
+                for t in tr:
+                    if t in line["experiment"]:
+                        traditional_exp[t][exp_number] = int(line["average_bitrate"])
+                        is_traditional = True
+                        # print(f"tr of {t}: {traditional_exp[t]}")
+                        # print(traditional_exp)
+                        break
+                if is_traditional:
+                    continue
+                if not is_traditional:
+                    if exp_base not in exp_result.keys():
+                        exp_result[exp_base] = {}
+                    exp_result[exp_base][exp_number] = int(line["average_bitrate"])
+        for e_s_name, e_s_stuff in exp_result.items():
             f, ax = plt.subplots()
             print(f"drawing series of {e_s_name}")
             lists = sorted(e_s_stuff.items())
             x, y = zip(*lists)
             ax.plot(x,y,label=e_s_name)
             ax.legend()
-            for t_name, t_stuff in tr_exp_series.items():
+            for t_name, t_stuff in traditional_exp.items():
                 lists = sorted(t_stuff.items())
                 x, y = zip(*lists)
                 ax.plot(x,y,label=t_name)
@@ -119,8 +120,6 @@ class ExperimentDrawer(ExperimentHandler):
             plt.savefig(f"test_output/result/{e_s_name}.png", bbox_inches='tight')
             plt.clf()
             plt.close()
-
-            
 
 
 if __name__ == '__main__':      

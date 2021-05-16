@@ -79,49 +79,62 @@ echo "IFCONFIG CHECKED Successfully"
 #experiment part
 rm -rf test_output
 mkdir test_output
+
+echo "insert modules of traditional algos"
 traditional=("cubic_t" "bbr_t" "bic_t" "htcp_t" "highspeed_t" "illinoise_t")
 directories_t=("cubic" "bbr" "bic" "htcp" "highspeed" "illinoise")
 
 for k in 0 1 2 3 4 5
 do
 t=${traditional[$k]}
-echo "$t Experiment start:"
-
-# set algo
+echo "$t is inserting now!!!"
 cd ${directories_t[$k]}
 make
 sudo rmmod tcp_$t
 sudo insmod tcp_$t.ko
 cd ..
+done
 
+echo "launch traditional experiments"
+
+for k in 0 1 2 3 4 5
+do
+for e in {1..2}
+do
+t=${traditional[$k]}\_e_$e
+echo "$t Experiment start:"
 mkdir test_output/$t
 start_time=$(date +"%T")
 ip netns exec ${array_host[0]} iperf3 -s -p 5201 -f K  &
 export iperf_serv=$!
-EXPERIMENT="$t" python3 weibull_threads_iperf.py &
+EXPERIMENT="$e" python3 weibull_threads_iperf.py &
 export weibull=$!
-ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 40 -C $t > test_output/$t/$t\_iperf.txt &
+ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 40 -C ${traditional[$k]} > test_output/$t/$t\_iperf.txt &
 export iperf_client=$!
-
 echo "waiting 40 seconds for iperf client to generate some traffic"
 wait $iperf_client
 echo "wait weibull"
 wait $weibull
 echo "killing iperf server"
 kill $iperf_serv
-
 echo "saving dmesg output of $t"
 journalctl -k --since $start_time > test_output/$t/$t\_dmesg.txt
 echo "$t Experiment end."
-sudo rmmod tcp_$t
+done
+done
+
+for k in 0 1 2 3 4 5
+do
+	echo "Deleting ${traditional[$k]}"
+	sudo rmmod tcp_${traditional[$k]}
 done
 
 
+echo "START Vityas EXPERIMENTS"
 step_array=(0 1)
 forecast_method_array=(0 1 2 3)
 packet_limit_array=(25)
 probability_array=(60 70 80 90)
-experiments_array=(125)
 for s in 0
 do
 for k in 0 1 2 3
@@ -130,6 +143,7 @@ for i in 0
 do
 for j in 2 3
 do
+# launch vityas and company 126 times
 	. clear_vityas.sh
 	cd vityas 
 	make
@@ -141,7 +155,7 @@ do
 	export _STEP=${step_array[$s]}
 	insmod tcp_vityas.ko probability=$_PROBABILITY packet_limit=$_PACKET_LIMIT forecast_method=$_FORECAST step=$_STEP
 	cd ..
-for e in {1..127}
+for e in {1..2}
 do 
 	experiment_name=test_f_$_FORECAST\_p_$_PROBABILITY\_l_$_PACKET_LIMIT\_e_$e
 	dir_name=test_output/$experiment_name
@@ -154,7 +168,7 @@ do
 	export iperf_serv=$!
 	ip netns exec ${array_host[1]} iperf3 -c 192.168.1.1 -B 192.168.1.2 -p 5201 -f K -t 40 -C vityas > $dir_name/$experiment_name\_iperf.txt &
 	export iperf_client=$!
-	EXPERIMENT="vityas_$i" python3 weibull_threads_iperf.py &
+	EXPERIMENT="$e" python3 weibull_threads_iperf.py &
 	export weibull=$!
 	echo "waiting 40 seconds for iperf client to generate some traffic"
 	wait $iperf_client
@@ -162,12 +176,10 @@ do
 	wait $weibull
 	echo "killing iperf server"
 	kill $iperf_serv
-
 	echo "Saving dmesg of vityas alg start time: $start_time"
 	journalctl -k --since $start_time > $dir_name/$experiment_name\_dmesg.txt
 	echo "VITYAS Experiment end."
 done
-
 done
 done
 done
@@ -176,6 +188,6 @@ done
 
 echo "finito la comedia, now Running Python script for saving csv_files of iperf and dmesg of each experiment..."
 
-python3 save_exp_to_csv_file.py
-python3 check_hypothesis.py
-python3 draw_graphs.py
+# python3 save_exp_to_csv_file.py
+# python3 check_hypothesis.py
+# python3 draw_graphs.py

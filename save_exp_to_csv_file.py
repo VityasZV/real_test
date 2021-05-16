@@ -31,6 +31,7 @@ class ExperimentHandler:
             print("dir already created")
 
     def prepare_pre_final_result(self, experiment) -> None:
+        print("Prepare pre final results")
         try: 
             input_filename = f"{self.input_directory}/{experiment}/{experiment}_iperf.txt"
             textfile = open(os.getcwd()+f"/{input_filename}", 'r')
@@ -55,31 +56,35 @@ class ExperimentHandler:
             for e, avb in self.e_to_avb.items():
                 writer.writerow({'experiment': e, 'average_bitrate': avb})
 
-    def save_final_result(self) -> None:
-        input_filename = f"{self.input_directory}/result/preparing.csv"
-        output_filename = f"{self.input_directory}/result/final.csv"
-        exp_result = {}
-        tr = ["cubic", "bbr", "bic", "htcp", "highspeed", "illinoise"]
-        traditional_exp = {}.fromkeys(tr, 0.0)
-        trt = [e + "_t" for e in tr]
+    # def save_final_result(self) -> None:
+    #     input_filename = f"{self.input_directory}/result/preparing.csv"
+    #     output_filename = f"{self.input_directory}/result/final.csv"
+    #     exp_result = {}
+    #     tr = ["cubic", "bbr", "bic", "htcp", "highspeed", "illinoise"]
+    #     traditional_exp = {}.fromkeys(tr, 0.0)
+    #     trt = [e + "_t" for e in tr]
 
-        with open(os.getcwd()+ f"/{input_filename}", mode='r') as csv_file:
-            reader = csv.DictReader(csv_file)
-            for line in reader:
-                if line["experiment"] in trt:
-                    traditional_exp[line["experiment"][0:-2]] = int(line["average_bitrate"])
-                else:
-                    exp_result[line["experiment"]] = int(line["average_bitrate"])  
-        better_than = {}.fromkeys(["better_than_" + e for e in tr],"")
+    #     with open(os.getcwd()+ f"/{input_filename}", mode='r') as csv_file:
+    #         reader = csv.DictReader(csv_file)
+    #         for line in reader:
+    #             is_traditional = False
+    #             for t in tr:
+    #                 if t in line["experiment"]:
+    #                     traditional_exp[line["experiment"]] = int(line["average_bitrate"])
+    #                     is_traditional = True
+    #                     break
+    #             if not is_traditional:
+    #                 exp_result[line["experiment"]] = int(line["average_bitrate"])  
+    #     better_than = {}.fromkeys(["better_than_" + e for e in traditional_exp],"")
 
-        with open(os.getcwd()+ f"/{output_filename}", mode='w') as csv_file:
-            field_names = ["experiment", "res", *tr,  *better_than]
-            writer = csv.DictWriter(csv_file, fieldnames=field_names)
-            writer.writeheader()
-            for e, av_speed in exp_result.items():
-                for b,t in zip(better_than.keys(), traditional_exp.keys()):
-                    better_than[b] = 'yes' if av_speed >= traditional_exp[t] else 'no'
-                writer.writerow({'experiment': e, 'res': av_speed, **traditional_exp, **better_than})
+    #     with open(os.getcwd()+ f"/{output_filename}", mode='w') as csv_file:
+    #         field_names = ["experiment", "res", *tr,  *better_than]
+    #         writer = csv.DictWriter(csv_file, fieldnames=field_names)
+    #         writer.writeheader()
+    #         for e, av_speed in exp_result.items():
+    #             for b,t in zip(better_than.keys(), traditional_exp.keys()):
+    #                 better_than[b] = 'yes' if av_speed >= traditional_exp[t] else 'no'
+    #             writer.writerow({'experiment': e, 'res': av_speed, **traditional_exp, **better_than})
 
 
     def saving_results_from_iperf(self, experiment) -> None:
@@ -105,8 +110,6 @@ class ExperimentHandler:
     def saving_results_from_dmesg(self, experiment) -> None:
         input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg.txt"
         output_filename = f"{self.output_directory}/{experiment}/{experiment}_dmesg.csv"
-        output_filename_filtr = f"{self.output_directory}/{experiment}/{experiment}_dmesg_f.csv"
-        output_filename_filtr_unused = f"{self.output_directory}/{experiment}/{experiment}_dmesg_f_unused.csv"
 
         textfile = open(os.getcwd()+f"/{input_filename}", 'r')
         filetext = textfile.read()
@@ -117,46 +120,6 @@ class ExperimentHandler:
         speed_matches = [{"time": re.findall("\d\d:\d\d:\d\d", el)[0], "cwnd": "?", "speed": re.findall("\d+", re.findall("buffer_speed_last = \d+", el)[0])[0], "forecast": re.findall("\d+", re.findall("forecast = \d+", el)[0])[0]} for el in speed_matches]
         all_matches = matches + speed_matches
         all_matches = sorted(all_matches, key=lambda tcs: tcs['time']) #sort by id of log, not by time
-
-        # with open(os.getcwd()+ f"/{output_filename_filtr_unused}", mode='w') as csv_file:
-        #     field_names = ["time", "CWND", "estimated_speed"]
-        #     writer = csv.DictWriter(csv_file, fieldnames=field_names)
-        #     writer.writeheader()
-        #     last_speed = ''
-        #     last_cwnd = ''
-        #     last_time = all_matches[0]['time']
-        #     time_i = 0
-        #     for el in all_matches:
-        #         if el['time'] == last_time:
-        #             last_speed = max(el['speed'] if el['speed'] != "?" else last_speed, last_speed)
-        #             last_cwnd = max(el['cwnd'] if el['cwnd'] != "?" else last_cwnd, last_cwnd)
-        #         else:
-        #             writer.writerow({'time': time_i, 'CWND': last_cwnd, 'estimated_speed': last_speed})
-        #             time_i+=1
-        #             last_speed = max(el['speed'] if el['speed'] != "?" else last_speed, last_speed)
-        #             last_cwnd = max(el['cwnd'] if el['cwnd'] != "?" else last_cwnd, last_cwnd)
-        #             last_time = el['time']
-        #     writer.writerow({'time': time_i, 'CWND': last_cwnd, 'estimated_speed': last_speed})
-
-        # with open(os.getcwd()+ f"/{output_filename_filtr}", mode='w') as csv_file:
-        #     field_names = ["time", "CWND", "estimated_speed"]
-        #     writer = csv.DictWriter(csv_file, fieldnames=field_names)
-        #     writer.writeheader()
-        #     last_speed = 0
-        #     last_cwnd = 0
-        #     last_time = all_matches[0]['time']
-        #     time_i = 0
-        #     for el in all_matches:
-        #         if el['cwnd'] == last_cwnd or el['cwnd'] == "?":
-        #             last_speed = max(int(el['speed']) if el['speed'] != "?" else last_speed, last_speed)
-        #             last_cwnd = el['cwnd'] if el['cwnd'] != "?" else last_cwnd
-        #             last_time = el['time']
-        #         else:
-        #             writer.writerow({'time': time_i, 'CWND': last_cwnd, 'estimated_speed': last_speed})
-        #             time_i+=1
-        #             last_speed = int(el['speed']) if el['speed'] != "?" else last_speed
-        #             last_cwnd = el['cwnd'] if el['cwnd'] != "?" else last_cwnd
-        #             last_time = el['time']
 
         with open(os.getcwd()+ f"/{output_filename}", mode='w') as csv_file:
             field_names = ["time", "CWND", "speed", "forecast"]
@@ -172,33 +135,6 @@ class ExperimentHandler:
                 last_time = el['time']
                 writer.writerow({'time': last_time, 'CWND': last_cwnd, 'speed': last_speed, 'forecast': last_forecast})
 
-    # def forecast_results_from_dmesg(self, experiment)->None:
-    #     input_filename = f"{self.input_directory}/{experiment}/{experiment}_dmesg.txt"
-    #     output_filename = f"{self.output_directory}/{experiment}/{experiment}_dmesg_forecast.csv"
-
-    #     textfile = open(os.getcwd()+f"/{input_filename}", 'r')
-    #     filetext = textfile.read()
-    #     print(f"SIZE OF FILETEXT dmesg {len(filetext)}")
-    #     textfile.close()
-    #     speed_matches = re.findall(".*\d\d:\d\d:\d\d.*forecast CWND=[\d,?]+.*SPEED=\d*", filetext)
-    #     speed_matches = [{"time": re.findall("\d\d:\d\d:\d\d", el)[0], "cwnd": "?", "speed": re.findall("\d+", re.findall("SPEED=\d+", el)[0])[0]} for el in speed_matches]
-    #     cwnd_matches = re.findall(".*\d\d:\d\d:\d\d.*UPDATE cwnd = \d*", filetext)
-    #     cwnd_matches = [{"time": re.findall("\d\d:\d\d:\d\d", el)[0], "cwnd": re.findall("\d+", re.findall("= \d+", el)[0])[0], "speed": "?"} for el in cwnd_matches]
-        
-    #     all_matches = cwnd_matches + speed_matches
-    #     all_matches = sorted(all_matches, key=lambda tcs: tcs['time'])
-
-    #     with open(os.getcwd()+ f"/{output_filename}", mode='w') as csv_file:
-    #         field_names = ["time", "CWND", "SPEED_CWND"]
-    #         writer = csv.DictWriter(csv_file, fieldnames=field_names)
-    #         writer.writeheader()
-    #         last_speed = 0
-    #         last_cwnd = 0
-    #         for el in all_matches:
-    #             last_speed = el['speed'] if el['speed'] != "?" else last_speed
-    #             last_cwnd = el['cwnd'] if el['cwnd'] != "?" else last_cwnd
-    #             last_time = el['time']
-    #             writer.writerow({'time': last_time, 'CWND': last_cwnd, 'SPEED_CWND': last_speed})
             
 
 
@@ -211,4 +147,4 @@ if __name__ == '__main__':
         experiment_handler.saving_results_from_dmesg(experiment)
         # experiment_handler.forecast_results_from_dmesg(experiment)
     experiment_handler.save_pre_final_result()
-    experiment_handler.save_final_result()
+    # experiment_handler.save_final_result()
