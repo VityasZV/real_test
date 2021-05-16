@@ -99,7 +99,7 @@ echo "launch traditional experiments"
 
 for k in 0 1 2 3 4 5
 do
-for e in {1..2}
+for e in {1..127}
 do
 t=${traditional[$k]}\_e_$e
 echo "$t Experiment start:"
@@ -155,7 +155,7 @@ do
 	export _STEP=${step_array[$s]}
 	insmod tcp_vityas.ko probability=$_PROBABILITY packet_limit=$_PACKET_LIMIT forecast_method=$_FORECAST step=$_STEP
 	cd ..
-for e in {1..2}
+for e in {1..127}
 do 
 	experiment_name=test_f_$_FORECAST\_p_$_PROBABILITY\_l_$_PACKET_LIMIT\_e_$e
 	dir_name=test_output/$experiment_name
