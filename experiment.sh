@@ -188,6 +188,6 @@ done
 
 echo "finito la comedia, now Running Python script for saving csv_files of iperf and dmesg of each experiment..."
 
-# python3 save_exp_to_csv_file.py
-# python3 check_hypothesis.py
-# python3 draw_graphs.py
+python3 save_exp_to_csv_file.py
+python3 check_hypothesis.py
+python3 draw_graphs.py

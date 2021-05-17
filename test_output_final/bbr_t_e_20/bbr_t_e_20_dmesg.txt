@@ -1,0 +1,3 @@
+-- Logs begin at Sat 2021-05-15 22:40:38 MSK, end at Sun 2021-05-16 19:11:31 MSK. --
+May 16 19:11:20 parallels-Parallels-Virtual-Platform kernel: UPDATE cwnd = 75
+May 16 19:11:31 parallels-Parallels-Virtual-Platform kernel: UPDATE cwnd = 26

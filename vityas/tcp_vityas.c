@@ -73,7 +73,7 @@ static short int probability = 60;
 static u64 z_index;
 static u64 rms;
 static short int packet_limit = 50;
-static short int forecast_method = 0; //0 for moving average, 1 for moving average with weights, 2 for trend aga 
+static short int forecast_method = 0; //0 for moving average, 1 for moving average with weights, 2 for trend, 3 - moving average x2
 static short int step = 0; //0 for down 1 for up
 static u32 cube_rtt_scale __read_mostly;
 static u32 beta_scale __read_mostly;
